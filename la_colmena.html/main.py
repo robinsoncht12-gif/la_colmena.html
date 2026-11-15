@@ -4,7 +4,7 @@ PUNTO DE ENTRADA PRINCIPAL: LaColmena WEB MVP
 Cátedra: Ingeniería de Software 3 [IF0129] - Corporación Universitaria Remington
 Docente: Ing. Jhon Alexander Rosero Lasso, MSc en Inteligencia Artificial
 Patrones: Clean Architecture, SOLID, ACID Local, SoD, Saga Orchestrator
-Tecnología: Python 3.10+ Standard Library + argon2-cffi + pika (RabbitMQ)
+Tecnología: Python 3.10+ Standard Library + argon2-cffi + confluent-kafka (Apache Kafka)
 ========================================================================================
 """
 import os
@@ -24,60 +24,61 @@ from src.logger import get_logger
 
 logger = get_logger("Main")
 
-def abrir_navegador(url: str, delay: float = 0.8):
-    """
-    Abre el navegador web del sistema con detección inteligente de WSL2 / Linux / Windows:
-    1. Si está en WSL2 y no hay GUI Linux, usa explorer.exe o powershell.exe de Windows.
-    2. Si tiene navegador Linux nativo, usa webbrowser.open().
-    3. Si es un entorno headless (sin entorno gráfico), captura el evento limpiamente
-       sin emitir mensajes de error 'xdg-open not found'.
-    """
+def abrir_navegador(url: str, delay: float = 0.8) -> None:
+    """Abre el navegador disponible o indica que el servidor está listo."""
     time.sleep(delay)
-    
-    # 1. Detección de entorno WSL2
-    es_wsl = False
-    try:
-        if os.path.exists("/proc/version"):
-            with open("/proc/version", "r") as f:
-                if "microsoft" in f.read().lower():
-                    es_wsl = True
-    except Exception:
-        pass
 
-    if es_wsl:
-        # Intentar invocar el navegador predeterminado del Windows host
-        try:
-            # cmd.exe /c start <url> o explorer.exe <url>
-            if os.path.exists("/mnt/c/Windows/System32/cmd.exe"):
-                subprocess.Popen(
-                    ["/mnt/c/Windows/System32/cmd.exe", "/c", "start", url],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
-                logger.info(f"🌐 [WSL2 Host] Abriendo LaColmena en el navegador de Windows: {url}")
-                return
-        except Exception:
-            pass
+    if _abrir_navegador_wsl(url):
+        return
 
-    # 2. Intento estándar multiplataforma
     try:
-        # Desviar stderr temporalmente para evitar el volcado de xdg-open en entornos sin X11/Wayland
-        devnull = open(os.devnull, 'w')
         old_stderr = os.dup(2)
-        os.dup2(devnull.fileno(), 2)
-        
-        abierto = webbrowser.open(url)
-        
-        os.dup2(old_stderr, 2)
-        os.close(old_stderr)
-        devnull.close()
+        try:
+            with open(os.devnull, "w") as devnull:
+                os.dup2(devnull.fileno(), 2)
+                try:
+                    abierto = webbrowser.open(url)
+                finally:
+                    os.dup2(old_stderr, 2)
+        finally:
+            os.close(old_stderr)
+    except (OSError, webbrowser.Error) as error:
+        logger.info(
+            "ℹ️ No se pudo abrir el navegador (%s). Abre manualmente: %s",
+            error,
+            url,
+        )
+        return
 
-        if abierto:
-            logger.info(f"🌐 LaColmena abierto en navegador local: {url}")
-        else:
-            logger.info(f"ℹ️ Servidor listo. Abre manualmente en tu navegador: {url}")
-    except Exception:
-        logger.info(f"ℹ️ Entorno sin GUI detectado. Abre manualmente en tu navegador: {url}")
+    if abierto:
+        logger.info("🌐 LaColmena abierto en navegador local: %s", url)
+    else:
+        logger.info("ℹ️ Servidor listo. Abre manualmente en tu navegador: %s", url)
+
+
+def _abrir_navegador_wsl(url: str) -> bool:
+    try:
+        with open("/proc/version", encoding="utf-8") as version_file:
+            es_wsl = "microsoft" in version_file.read().lower()
+    except OSError:
+        return False
+
+    comando_windows = "/mnt/c/Windows/System32/cmd.exe"
+    if not es_wsl or not os.path.exists(comando_windows):
+        return False
+
+    try:
+        subprocess.Popen(
+            [comando_windows, "/c", "start", url],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError as error:
+        logger.warning("No se pudo abrir el navegador de Windows desde WSL: %s", error)
+        return False
+
+    logger.info("🌐 [WSL2 Host] Abriendo LaColmena en el navegador de Windows: %s", url)
+    return True
 
 
 if __name__ == "__main__":

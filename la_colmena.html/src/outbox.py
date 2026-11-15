@@ -4,7 +4,7 @@ import sqlite3
 import threading
 from typing import Any, Dict, Optional, Protocol
 
-import pika
+from confluent_kafka import KafkaException, Producer
 
 from src.interfaces import IOutboxRepository
 from src.logger import get_logger
@@ -17,59 +17,61 @@ class EventPublisher(Protocol):
         ...
 
 
-class RabbitMQPublisher:
+class KafkaPublisher:
     def __init__(
         self,
-        url: Optional[str] = None,
-        exchange: str = "bina.events",
-        queue: str = "bina.events",
+        bootstrap_servers: Optional[str] = None,
+        topic: str = "bina.events",
     ):
-        self.url = url or os.environ.get(
-            "LACOLMENA_RABBITMQ_URL",
-            "amqp://guest:guest@localhost:5672/%2F",
+        self.bootstrap_servers = bootstrap_servers or os.environ.get(
+            "LACOLMENA_KAFKA_BOOTSTRAP_SERVERS",
+            "localhost:9092",
         )
-        self.exchange = exchange
-        self.queue = queue
+        self.topic = topic
+        self._producer = Producer(
+            {
+                "bootstrap.servers": self.bootstrap_servers,
+                "client.id": "lacolmena-outbox",
+                "acks": "all",
+                "enable.idempotence": True,
+                "message.timeout.ms": 4000,
+            }
+        )
 
     def publish(self, event: Dict[str, Any]) -> None:
-        parameters = pika.URLParameters(self.url)
-        parameters.connection_attempts = 1
-        parameters.socket_timeout = 3
-        parameters.blocked_connection_timeout = 3
-        connection = pika.BlockingConnection(parameters)
-        try:
-            channel = connection.channel()
-            channel.exchange_declare(
-                exchange=self.exchange,
-                exchange_type="topic",
-                durable=True,
+        delivery_errors = []
+
+        def delivery_report(error, _):
+            if error is not None:
+                delivery_errors.append(error)
+
+        self._producer.produce(
+            self.topic,
+            key=event["id"],
+            value=json.dumps(
+                event,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ),
+            headers=[("content-type", "application/cloudevents+json")],
+            callback=delivery_report,
+        )
+        pending = self._producer.flush(timeout=4.0)
+        if pending:
+            raise TimeoutError(
+                f"Kafka no confirmó la entrega; quedan {pending} mensajes."
             )
-            channel.queue_declare(queue=self.queue, durable=True)
-            channel.queue_bind(
-                queue=self.queue,
-                exchange=self.exchange,
-                routing_key="bina.#",
+        if delivery_errors:
+            raise KafkaException(delivery_errors[0])
+
+    def close(self) -> None:
+        pending = self._producer.flush(timeout=4.0)
+        if pending:
+            logger.warning(
+                "Kafka conserva %s mensajes sin confirmar al cerrar el publicador.",
+                pending,
             )
-            channel.confirm_delivery()
-            channel.basic_publish(
-                exchange=self.exchange,
-                routing_key=event["type"],
-                body=json.dumps(
-                    event,
-                    ensure_ascii=False,
-                    allow_nan=False,
-                    separators=(",", ":"),
-                ),
-                properties=pika.BasicProperties(
-                    content_type="application/cloudevents+json",
-                    delivery_mode=2,
-                    message_id=event["id"],
-                ),
-                mandatory=True,
-            )
-        finally:
-            if connection.is_open:
-                connection.close()
 
 
 class OutboxWorker:
@@ -92,7 +94,12 @@ class OutboxWorker:
         for record in self.repository.obtener_pendientes():
             try:
                 self.publisher.publish(record["payload"])
-            except (pika.exceptions.AMQPError, OSError, ValueError) as error:
+            except (
+                KafkaException,
+                OSError,
+                ValueError,
+                BufferError,
+            ) as error:
                 error_detail = repr(error)
                 self.repository.registrar_error(record["id"], error_detail)
                 logger.error(

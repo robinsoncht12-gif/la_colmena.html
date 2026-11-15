@@ -33,5 +33,3 @@ class InMemoryEventBus:
                         logger.exception("Falló un manejador del evento %s", event_type)
             except queue.Empty:
                 continue
-
-event_bus_global = None

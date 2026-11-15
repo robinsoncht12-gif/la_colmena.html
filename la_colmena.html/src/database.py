@@ -1,7 +1,7 @@
 import os
 import sqlite3
 from contextlib import contextmanager
-from typing import Iterator, Optional
+from typing import Generator, Optional
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(PROJECT_ROOT, "LaColmena.db")
@@ -13,7 +13,9 @@ def connect_db(db_path: Optional[str] = None) -> sqlite3.Connection:
 
 
 @contextmanager
-def database_connection(db_path: Optional[str] = None) -> Iterator[sqlite3.Connection]:
+def database_connection(
+    db_path: Optional[str] = None,
+) -> Generator[sqlite3.Connection, None, None]:
     connection = connect_db(db_path)
     try:
         with connection:

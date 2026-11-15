@@ -16,6 +16,7 @@ import sqlite3
 import threading
 import base64
 import hashlib
+from confluent_kafka import KafkaError, KafkaException
 from http.client import HTTPConnection
 from contextlib import closing
 from unittest.mock import patch
@@ -25,14 +26,33 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from src.models import Producto, Pedido, ItemPedido, EstadoPedido, EstadoSaga
+from src.models import Pedido, ItemPedido, EstadoPedido, EstadoSaga
 from src.validators import Validator, ValidationError
 from src.repositories import SQLiteProductoRepository, SQLitePedidoRepository, SQLiteOutboxRepository
 from src.services import ColmenaService, PasarelaPagosMock, SagaOrquestadorMatriculaPedido
 from src import app
 from src.auth import TokenBucketRateLimiter, hash_password, verify_password
 from src.events import crear_cloudevent, event_bus_global
-from src.outbox import OutboxWorker, RabbitMQPublisher
+from src.outbox import KafkaPublisher, OutboxWorker
+import main
+
+
+class TestPuntoEntrada(unittest.TestCase):
+    def test_restaurar_stderr_si_falla_la_apertura_del_navegador(self):
+        with (
+            patch("main.time.sleep"),
+            patch("main._abrir_navegador_wsl", return_value=False),
+            patch("main.os.dup", return_value=99),
+            patch("main.os.dup2") as dup2,
+            patch("main.os.close") as close,
+            patch("main.webbrowser.open", side_effect=OSError("sin navegador")),
+            patch("main.logger.info"),
+        ):
+            main.abrir_navegador("http://localhost:8086", delay=0)
+
+        self.assertEqual(dup2.call_count, 2)
+        dup2.assert_any_call(99, 2)
+        close.assert_called_once_with(99)
 
 
 class TestAplicacionWeb(unittest.TestCase):
@@ -596,7 +616,7 @@ class TestBusEventos(unittest.TestCase):
     def test_publica_eventos_a_suscriptores(self):
         recibido = threading.Event()
         tipo_evento = f"prueba.{uuid.uuid4()}"
-        event_bus_global.subscribe(tipo_evento, lambda evento: recibido.set())
+        event_bus_global.subscribe(tipo_evento, lambda _: recibido.set())
 
         event_bus_global.publish(crear_cloudevent(tipo_evento, {}))
 
@@ -821,7 +841,7 @@ class TestOutboxWorker(unittest.TestCase):
         event_id = self.outbox_repo.registrar_evento("2", event.to_dict())
 
         class FailingPublisher:
-            def publish(self, published_event):
+            def publish(self, _):
                 raise OSError("broker no disponible")
 
         worker = OutboxWorker(self.outbox_repo, FailingPublisher())
@@ -832,27 +852,59 @@ class TestOutboxWorker(unittest.TestCase):
         self.assertEqual(pending[0]["attempts"], 1)
         self.assertEqual(pending[0]["last_error"], "OSError('broker no disponible')")
 
-    def test_rabbitmq_publica_json_cloud_event_durable(self):
+    def test_kafka_publica_json_cloud_event_y_espera_confirmacion(self):
         event = crear_cloudevent(
             "bina.la_colmena.venta.registrada",
             {"sale_id": 3},
         ).to_dict()
-        with patch("src.outbox.pika.BlockingConnection") as connection_factory:
-            channel = connection_factory.return_value.channel.return_value
-            publisher = RabbitMQPublisher("amqp://user:pass@localhost:5672/%2F")
+        with patch("src.outbox.Producer") as producer_factory:
+            producer = producer_factory.return_value
+
+            def confirm_delivery(timeout):
+                self.assertEqual(timeout, 4.0)
+                delivery_callback = producer.produce.call_args.kwargs["callback"]
+                delivery_callback(None, None)
+                return 0
+
+            producer.flush.side_effect = confirm_delivery
+            publisher = KafkaPublisher("localhost:9092")
 
             publisher.publish(event)
 
-        channel.confirm_delivery.assert_called_once()
-        publish_args = channel.basic_publish.call_args.kwargs
-        self.assertEqual(publish_args["routing_key"], event["type"])
-        self.assertTrue(publish_args["mandatory"])
-        self.assertEqual(json.loads(publish_args["body"]), event)
+        config = producer_factory.call_args.args[0]
+        self.assertEqual(config["bootstrap.servers"], "localhost:9092")
+        self.assertEqual(config["acks"], "all")
+        self.assertTrue(config["enable.idempotence"])
+        publish_args = producer.produce.call_args
+        self.assertEqual(publish_args.args[0], "bina.events")
+        self.assertEqual(publish_args.kwargs["key"], event["id"])
+        self.assertEqual(json.loads(publish_args.kwargs["value"]), event)
         self.assertEqual(
-            publish_args["properties"].content_type,
-            "application/cloudevents+json",
+            publish_args.kwargs["headers"],
+            [("content-type", "application/cloudevents+json")],
         )
-        self.assertEqual(publish_args["properties"].delivery_mode, 2)
+        producer.flush.assert_called_once_with(timeout=4.0)
+
+    def test_kafka_error_de_entrega_se_propaga_para_el_outbox(self):
+        event = crear_cloudevent(
+            "bina.la_colmena.venta.registrada",
+            {"sale_id": 4},
+        ).to_dict()
+        with patch("src.outbox.Producer") as producer_factory:
+            producer = producer_factory.return_value
+            delivery_error = KafkaError(KafkaError._ALL_BROKERS_DOWN)
+
+            def reject_delivery(timeout):
+                self.assertEqual(timeout, 4.0)
+                delivery_callback = producer.produce.call_args.kwargs["callback"]
+                delivery_callback(delivery_error, None)
+                return 0
+
+            producer.flush.side_effect = reject_delivery
+            publisher = KafkaPublisher("localhost:9092")
+
+            with self.assertRaises(KafkaException):
+                publisher.publish(event)
 
 class TestSagaYLogicaNegocio(unittest.TestCase):
     """Pruebas del Orquestador Saga, Idempotencia y Compensación Inversa C1."""

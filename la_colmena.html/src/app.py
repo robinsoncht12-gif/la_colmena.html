@@ -24,7 +24,7 @@ from src.auth import (
 from src.database import DB_PATH, database_connection
 from src.events import crear_cloudevent
 from src.logger import get_logger
-from src.outbox import OutboxWorker, RabbitMQPublisher
+from src.outbox import KafkaPublisher, OutboxWorker
 from src.repositories import (
     SQLiteOutboxRepository,
     SQLitePedidoRepository,
@@ -813,13 +813,15 @@ class H(BaseHTTPRequestHandler):
 def run_server(host="127.0.0.1", port=8086):
     init_db()
     server = HTTPServer((host, port), H)
-    worker = OutboxWorker(SQLiteOutboxRepository(DB), RabbitMQPublisher())
+    publisher = KafkaPublisher()
+    worker = OutboxWorker(SQLiteOutboxRepository(DB), publisher)
     worker.start()
     print(f"Corriendo en http://localhost:{port}")
     try:
         server.serve_forever()
     finally:
         worker.stop()
+        publisher.close()
         server.server_close()
 
 

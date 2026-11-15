@@ -1,7 +1,7 @@
 # 🏥 LaColmena MVP — GUÍA DE ARQUITECTURA Y ENTREGAS INCREMENTALES
 **Asignatura:** [IF0129] Ingeniería de Software 3 | **Institución:** Corporación Universitaria Remington  
 **Docente Titular:** Ing. Jhon Alexander Rosero Lasso, MSc en Inteligencia Artificial  
-**Tecnología Base:** Python Estándar (3.10+) + Web Nativo; `argon2-cffi` para hashing y `pika` para RabbitMQ.
+**Tecnología Base:** Python Estándar (3.10+) + Web Nativo; `argon2-cffi` para hashing y `confluent-kafka` para Apache Kafka.
 
 ---
 
@@ -75,30 +75,34 @@ El servidor levantará en `http://localhost:8086` con:
 
 - Los eventos se guardan como JSON CloudEvents 1.0 con `specversion`, UUIDv4 `id`, `source` con prefijo `bina`, tipo en pasado, `datacontenttype` y `data`.
 - Las ventas, ajustes de inventario, cuentas y transiciones de pedido escriben su cambio de negocio y el evento `PENDING` en una única transacción SQLite.
-- El worker asíncrono publica al exchange/topic durable `bina.events` en RabbitMQ y solo marca `PROCESSED` tras la confirmación del broker. Si RabbitMQ no está disponible, el evento permanece pendiente y se reintenta.
+- El worker asíncrono publica CloudEvents JSON en el topic durable `bina.events` de Apache Kafka y solo marca `PROCESSED` tras la confirmación del broker (`acks=all`). Si Kafka no está disponible, el evento permanece pendiente en SQLite y se reintenta.
 - La entrega es al menos una vez: un consumidor debe deduplicar usando el `id` CloudEvent.
 
-Para levantar RabbitMQ localmente con Docker Compose, configura credenciales locales y la URL AMQP en PowerShell. El volumen conserva las credenciales iniciales; reutiliza la misma contraseña mientras conserves ese volumen:
+Para levantar Kafka localmente con Docker Compose, configura la dirección del broker en PowerShell:
 
 ```powershell
-$env:RABBITMQ_DEFAULT_USER = "lacolmena"
-$env:RABBITMQ_DEFAULT_PASS = "REEMPLAZA_Y_GUARDA_TU_CLAVE_LOCAL"
-$env:LACOLMENA_RABBITMQ_URL = "amqp://$($env:RABBITMQ_DEFAULT_USER):$($env:RABBITMQ_DEFAULT_PASS)@127.0.0.1:5672/%2F"
-docker compose up -d rabbitmq
+$env:LACOLMENA_KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
+docker compose up -d broker
 docker compose ps
-Test-NetConnection 127.0.0.1 -Port 5672
+Test-NetConnection 127.0.0.1 -Port 9092
 python main.py
 ```
 
-RabbitMQ debe estar disponible antes de procesar eventos; la aplicación puede iniciar sin el broker y conservará los eventos pendientes en SQLite.
+Para inspeccionar los CloudEvents desde otra consola:
+
+```powershell
+docker compose exec broker /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic bina.events --from-beginning
+```
+
+Kafka debe estar disponible antes de procesar eventos; la aplicación puede iniciar sin el broker y conservará los eventos pendientes en SQLite. El Compose de desarrollo expone el listener solo en `127.0.0.1` y no habilita autenticación; no debe exponerse a redes no confiables.
 
 ## 🔁 7. Saga, compensación e idempotencia D4
 
 ### Decisión CAP
 
-El teorema CAP establece que, durante una partición de red, un sistema distribuido no puede garantizar simultáneamente consistencia linealizable y disponibilidad para todas las solicitudes. CAP aplica a los límites distribuidos (por ejemplo, la comunicación con pagos y RabbitMQ), no a SQLite ejecutándose localmente por sí solo. Ante una partición que impida obtener una confirmación fiable de la pasarela, La Colmena prioriza **consistencia (CP)** para el checkout: no declara la orden confirmada ni permite completar el flujo sin confirmar el cobro. La solicitud falla o queda en compensación; se prefiere perder disponibilidad temporal a vender sin stock reservado o registrar un pago incierto como exitoso.
+El teorema CAP establece que, durante una partición de red, un sistema distribuido no puede garantizar simultáneamente consistencia linealizable y disponibilidad para todas las solicitudes. CAP aplica a los límites distribuidos (por ejemplo, la comunicación con pagos y Kafka), no a SQLite ejecutándose localmente por sí solo. Ante una partición que impida obtener una confirmación fiable de la pasarela, La Colmena prioriza **consistencia (CP)** para el checkout: no declara la orden confirmada ni permite completar el flujo sin confirmar el cobro. La solicitud falla o queda en compensación; se prefiere perder disponibilidad temporal a vender sin stock reservado o registrar un pago incierto como exitoso.
 
-El Outbox conserva disponibilidad para confirmar una transacción local y publicar sus eventos posteriormente, pero esa entrega eventual no equivale a consistencia fuerte entre SQLite, RabbitMQ y la pasarela. En producción, un timeout con resultado de pago desconocido debe reconciliarse consultando la pasarela con la misma clave idempotente antes de liberar inventario.
+El Outbox conserva disponibilidad para confirmar una transacción local y publicar sus eventos posteriormente, pero esa entrega eventual no equivale a consistencia fuerte entre SQLite, Kafka y la pasarela. En producción, un timeout con resultado de pago desconocido debe reconciliarse consultando la pasarela con la misma clave idempotente antes de liberar inventario.
 
 ### Máquina Saga y C1
 
@@ -118,4 +122,4 @@ El simulador de pagos conserva sus claves en memoria; una pasarela real debe pro
 
 ### Despliegue
 
-El archivo `docker-compose.yml` levanta RabbitMQ con credenciales locales obligatorias. Para iniciarlo, configura `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS` y `LACOLMENA_RABBITMQ_URL` como se muestra en la sección anterior y ejecuta `docker compose up -d rabbitmq`.
+El archivo `docker-compose.yml` levanta un broker Kafka KRaft de un solo nodo para desarrollo local. La configuración no es un clúster de producción; para ese uso configura alta disponibilidad, retención y seguridad de transporte/autenticación.
