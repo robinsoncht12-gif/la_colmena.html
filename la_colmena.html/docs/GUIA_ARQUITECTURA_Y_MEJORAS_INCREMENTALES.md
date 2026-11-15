@@ -7,13 +7,13 @@
 
 ## 🏛️ 1. Principios de Arquitectura Aplicados (IS1, IS2 e IS3)
 
-El sistema base está diseñado como un **Monolito Modular Limpio**, garantizando:
+El sistema actual es un **monolito modular en transición**. Sus límites de dominio están identificados, pero parte de la separación todavía no está impuesta por el código:
 1. **SOLID:**
-   - **SRP (Single Responsibility):** Modelos (`models.py`), Abstracciones (`interfaces.py`), Repositorios (`repositories.py`) y Servicios (`services.py`) estrictamente separados.
-   - **DIP (Dependency Inversion):** Los servicios no dependen de SQLite directamente, sino de las interfaces `IProductoRepository` e `IPedidoRepository`.
+   - **SRP (Single Responsibility):** Modelos (`models.py`), Abstracciones (`interfaces.py`), Repositorios (`repositories.py`) y Servicios (`services.py`) están separados en el flujo Saga; las rutas heredadas aún concentran varias responsabilidades en `app.py`.
+   - **DIP (Dependency Inversion):** `ColmenaService` usa contratos de repositorio, pero también abre conexiones SQLite directamente para coordinar la transacción Saga.
 2. **ACID Local:** Persistencia atómica en SQLite con aislamiento y control transaccional nativo.
-3. **SoD (Separation of Duties / Separation of Concerns):** El plano de presentación web (`app.py`) no contiene lógica de negocio ni sentencias SQL.
-4. **C4 Model Ready:** Estructura organizada para ser mapeada de forma natural en Nivel 1 (Contexto), Nivel 2 (Contenedor Web/DB) y Nivel 3 (Componentes).
+3. **SoD (Separation of Duties / Separation of Concerns):** Parcial. `app.py` contiene SQL y lógica de rutas; el flujo Saga usa servicios y repositorios.
+4. **D2 — Modelo C4, Bounded Contexts e ISO 25010:** diagramas C1–C3, métricas Ca/Ce/I/D, propiedad de datos por contexto y metas ISO se documentan en [D2 — Modelo C4, acoplamiento, Bounded Contexts e ISO/IEC 25010](./D2_MODELADO_C4_ISO25010_BOUNDED_CONTEXTS.md). El documento registra explícitamente las brechas actuales de aislamiento.
 
 ## 🧩 2. Estructura del Código
 
@@ -48,7 +48,7 @@ El servidor levantará en `http://localhost:8086` con:
 
 | Sesión | Hito Evaluativo | Mejora Incremental en la Aplicación LaColmena |
 | :---: | :---: | :--- |
-| **S1** | **Act1 (25% Seg.)** | **Diagnóstico y Modelo C4:** Diagramar Contexto, Contenedores y Componentes del monolito actual y calcular métricas de acoplamiento $I = C_e / (C_a + C_e)$. |
+| **S1** | **Act1 (25% Seg.)** | **Diagnóstico y Modelo C4:** C1–C3, baseline Ca/Ce/I/D, Bounded Contexts y metas ISO 25010 documentados en [D2](./D2_MODELADO_C4_ISO25010_BOUNDED_CONTEXTS.md); el aislamiento estricto queda como brecha de implementación. |
 | **S2** | **PRIMER PARCIAL (25%)** | **Descomposición y CloudEvents:** Separar el catálogo de productos del servicio de órdenes y emitir eventos bajo el estándar **CNCF CloudEvents v1.0** en formato JSON. |
 | **S3** | **Act2 (25% Seg.)** | **Transactional Outbox y Rate Limiting:** Activar el procesamiento de la `outbox_table` para evitar la Doble Escritura (Dual-Write) y agregar limitación de tasa (Token Bucket) al login. |
 | **S4** | **SEGUNDO PARCIAL (25%)** | **Orquestador Saga y Compensación Inversa:** Implementar la máquina de estados completa ($T_1 \to T_2 \to T_3$), probar la inyección de fallos con compensación ($C_1$) y verificar la Idempotency Key. |
