@@ -1,0 +1,360 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>La Colmena - Gestión comercial</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        .contenedor {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .izquierda {
+            width: 50%;
+            background: #0a2a6b;
+            color: white;
+            padding: 40px 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .logo-icono {
+            background: #1a4aa0;
+            width: 45px;
+            height: 45px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .logo b {
+            font-size: 20px;
+            display: block;
+        }
+
+        .logo span {
+            color: #b8c9e8;
+            font-size: 13px;
+        }
+
+        .etiqueta {
+            color: #3aa0ff;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 52px;
+            line-height: 1.15;
+            margin-bottom: 22px;
+        }
+
+        .centro p {
+            color: #cbd8f0;
+            font-size: 17px;
+            line-height: 1.6;
+        }
+
+        .stats {
+            display: flex;
+            gap: 70px;
+            border-top: 1px solid rgba(255,255,255,.2);
+            padding-top: 25px;
+            margin-top: 50px;
+        }
+
+            .stats b {
+                font-size: 24px;
+                display: block;
+            }
+
+            .stats span {
+                color: #aebfe0;
+                font-size: 14px;
+            }
+
+        .derecha {
+            width: 50%;
+            background: white;
+            padding: 50px 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .bienvenido {
+            color: #0a2a6b;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .derecha h2 {
+            font-size: 38px;
+            margin-bottom: 10px;
+        }
+
+        .sub {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            font-size: 14px;
+            margin: 15px 0 8px 0;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        .btn {
+            width: 100%;
+            background: #0a2a6b;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+            .btn:hover {
+                background: #123f9e;
+            }
+
+        .demo {
+            background: #f2f5fa;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+            .demo p {
+                color: #666;
+                font-size: 14px;
+            }
+
+        .crear {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+            .crear a, .olvido {
+                color: #0a2a6b;
+                font-weight: bold;
+                text-decoration: none;
+                cursor: pointer;
+            }
+
+        .olvido {
+            text-align: right;
+            display: block;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        /* DASHBOARD */
+        #dashboard {
+            display: none;
+            min-height: 100vh;
+            background: #f2f2f2;
+        }
+
+        header {
+            background: #0a2a6b;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+            header button {
+                background: white;
+                color: #0a2a6b;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 20px;
+                cursor: pointer;
+                font-weight: bold;
+            }
+
+        .menu {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+
+            .menu button {
+                padding: 12px 20px;
+                border: none;
+                border-radius: 20px;
+                background: white;
+                cursor: pointer;
+                font-size: 15px;
+            }
+
+                .menu button.activo {
+                    background: #0a2a6b;
+                    color: white;
+                }
+
+        .caja {
+            background: white;
+            margin: 0 20px 20px 20px;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+            .caja h3 {
+                margin-bottom: 15px;
+            }
+
+            .caja input {
+                width: 200px;
+                margin: 5px;
+            }
+
+        .btn2 {
+            background: #0a2a6b;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN -->
+    <div class="contenedor" id="login">
+        <div class="izquierda">
+            <div class="logo"><div class="logo-icono">⬢</div><div><b>La Colmena</b><span>Gestión comercial</span></div></div>
+            <div class="centro"><div class="etiqueta">CONTROL · TRAZABILIDAD · CRECIMIENTO</div><h1>Tu operación, clara de principio a fin.</h1><p>Administra portafolio, inventario y ventas desde un mismo lugar, con información útil para cada decisión.</p></div>
+            <div class="stats"><div><b>54</b><span>Productos</span></div><div><b>3</b><span>Alertas activas</span></div><div><b>+ 18%</b><span>Ventas del mes</span></div></div>
+        </div>
+        <div class="derecha">
+            <div class="bienvenido">BIENVENIDO DE NUEVO</div><h2>Inicia sesión</h2><p class="sub">Ingresa tus datos para continuar.</p>
+            <label>Correo electrónico</label><input id="correo" value="demo@lacolmena.co">
+            <label>Contraseña</label><input id="clave" type="password" value="demo123">
+            <a class="olvido" onclick="alert('Escribe a soporte@lacolmena.co para recuperar tu contraseña')">¿Olvidaste tu contraseña?</a>
+            <button class="btn" onclick="entrar()">Iniciar sesión ›</button>
+            <div class="demo"><b>Acceso de demostración</b><p>demo@lacolmena.co · demo123</p></div>
+            <div class="crear">¿Aún no tienes cuenta? <a onclick="alert('Cuenta demo creada. Usa demo@lacolmena.co / demo123')">Crear cuenta</a></div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard">
+        <header><div><b>🐝 La Colmena</b> - Gestión comercial</div><button onclick="salir()">Cerrar sesión</button></header>
+        <div class="menu">
+            <button id="b-productos" class="activo" onclick="mostrar('productos')">Productos</button>
+            <button id="b-inventario" onclick="mostrar('inventario')">Inventario</button>
+            <button id="b-ventas" onclick="mostrar('ventas')">Ventas</button>
+            <button id="b-pedidos" onclick="mostrar('pedidos')">Pedidos</button>
+        </div>
+        <div class="caja" id="sec-productos">
+            <h3>Productos</h3>
+            <input id="nombre" placeholder="Nombre del producto"><input id="precio" placeholder="Precio" type="number"><button class="btn2" onclick="agregar()">Agregar producto</button>
+            <table>
+                <thead><tr><th>Producto</th><th>Precio</th></tr></thead>
+                <tbody id="lista"></tbody>
+            </table>
+        </div>
+        <div class="caja" id="sec-inventario" style="display:none"><h3>Inventario</h3><p>Stock actual: 54 productos. 3 con alerta de stock bajo.</p><button class="btn2" onclick="alert('Inventario actualizado')">Actualizar inventario</button></div>
+        <div class="caja" id="sec-ventas" style="display:none"><h3>Ventas</h3><p>Ventas del mes: +18%. Total: $4.250.000</p><button class="btn2" onclick="alert('Venta registrada con éxito ✅')">Nueva venta</button></div>
+        <div class="caja" id="sec-pedidos" style="display:none"><h3>Pedidos</h3><p>Tienes 5 pedidos pendientes.</p><button class="btn2" onclick="alert('Pedido creado')">Nuevo pedido</button></div>
+    </div>
+
+    <script>
+        function entrar() {
+            let c = document.getElementById('correo').value;
+            let p = document.getElementById('clave').value;
+            if (c === 'demo@lacolmena.co' && p === 'demo123') {
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+            } else {
+                alert('Correo o contraseña incorrectos. Usa demo@lacolmena.co / demo123');
+            }
+        }
+        function salir() {
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('login').style.display = 'flex';
+        }
+        function mostrar(sec) {
+            ['productos', 'inventario', 'ventas', 'pedidos'].forEach(s => {
+                document.getElementById('sec-' + s).style.display = (s === sec ? 'block' : 'none');
+                document.getElementById('b-' + s).classList.toggle('activo', s === sec);
+            });
+        }
+        function agregar() {
+            let n = document.getElementById('nombre').value;
+            let pr = document.getElementById('precio').value;
+            if (!n || !pr) { alert('Escribe nombre y precio'); return; }
+            let fila = document.createElement('tr');
+            fila.innerHTML = '<td>' + n + '</td><td>$' + pr + '</td>';
+            document.getElementById('lista').appendChild(fila);
+            document.getElementById('nombre').value = ''; document.getElementById('precio').value = '';
+            alert('Producto agregado ✅');
+        }
+        async function cargarProductos() {
+            try {
+                let r = await fetch("/api/productos");
+                let prods = await r.json();
+                let tbody = document.getElementById("lista");
+                if (!tbody) return;
+                tbody.innerHTML = "";
+                prods.forEach(p => {
+                    let precio = p.precio_venta ?? p.precio ?? 0;
+                    tbody.innerHTML += `<tr><td>${p.nombre}</td><td>$${precio}</td></tr>`;
+                });
+            } catch (e) {
+                console.log("No se pudo cargar de la BD", e);
+            }
+        }
+        cargarProductos();
+    </script>
+</body>
+</html>

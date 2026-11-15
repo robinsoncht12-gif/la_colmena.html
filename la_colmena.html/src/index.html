@@ -1,0 +1,350 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>La Colmena — Gestión comercial</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            font-family: Inter,system-ui,Arial
+        }
+
+        body {
+            background: #f6f3ee;
+            color: #1a1a1a
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 250px;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column
+        }
+
+            .sidebar h2 {
+                font-size: 20px
+            }
+
+            .sidebar small {
+                color: #aaa
+            }
+
+        .menu {
+            margin-top: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px
+        }
+
+            .menu button {
+                background: none;
+                border: 0;
+                color: #ccc;
+                text-align: left;
+                padding: 11px 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px
+            }
+
+                .menu button.active, .menu button:hover {
+                    background: #333;
+                    color: #fff
+                }
+
+        .user {
+            margin-top: auto;
+            border-top: 1px solid #333;
+            padding-top: 14px
+        }
+
+            .user b {
+                display: block
+            }
+
+        .main {
+            margin-left: 250px;
+            padding: 24px
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 14px;
+            margin: 18px 0
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 18px
+        }
+
+            .card small {
+                color: #666
+            }
+
+            .card h3 {
+                font-size: 28px;
+                margin: 6px 0
+            }
+
+        .grid2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px
+        }
+
+        .box {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 14px
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px
+        }
+
+        th {
+            text-align: left;
+            background: #f3f3f3;
+            padding: 10px
+        }
+
+        td {
+            padding: 10px;
+            border-top: 1px solid #eee
+        }
+
+        input, select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            width: 100%;
+            margin: 6px 0
+        }
+
+        button.btn {
+            background: #e67e22;
+            color: #fff;
+            border: 0;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700
+        }
+
+        button.btn2 {
+            background: #1a1a1a;
+            color: #fff;
+            border: 0;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700
+        }
+
+        .ok {
+            background: #d4f5d4
+        }
+
+        .warn {
+            background: #ffe9b0
+        }
+
+        .alerta {
+            color: #b45309;
+            font-size: 13px
+        }
+
+        .hidden {
+            display: none
+        }
+
+        #login {
+            position: fixed;
+            inset: 0;
+            background: #f6f3ee;
+            display: grid;
+            place-items: center;
+            z-index: 99
+        }
+
+        .loginbox {
+            background: #fff;
+            padding: 28px;
+            border-radius: 14px;
+            width: 360px;
+            max-width: 92vw;
+            box-shadow: 0 10px 30px rgba(0,0,0,.1);
+            text-align: center
+        }
+
+        @media(max-width:800px) {
+            .sidebar {
+                width: 100%;
+                position: relative
+            }
+
+            .main {
+                margin: 0
+            }
+
+            .cards, .grid2 {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login">
+        <div class="loginbox">
+            <h1>🐝 La Colmena</h1><p style="color:#666;margin:8px 0 16px">Gestión comercial</p>
+            <input id="email" value="demo@lacolmena.co"><input id="pass" type="password" value="demo123">
+            <button class="btn" style="width:100%;margin-top:8px" onclick="login()">Entrar</button><p id="loginError" style="color:red;font-size:13px;margin-top:8px"></p>
+            <p style="font-size:12px;color:#888;margin-top:10px">Demo: demo@lacolmena.co / demo123</p>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <h2>🐝 La Colmena</h2><small>Gestión comercial</small>
+        <div class="menu">
+            <button onclick="show('resumen',this)" class="active">📊 Resumen</button>
+            <button onclick="show('portafolio',this)">🛍️ Portafolio</button>
+            <button onclick="show('inventario',this)">📦 Inventario</button>
+            <button onclick="show('ventas',this)">🛒 Ventas</button>
+            <button onclick="show('pedidos',this)">📋 Pedidos</button>
+            <button onclick="show('reportes',this)">📈 Reportes</button>
+            <button onclick="show('usuarios',this)">👥 Usuarios</button>
+        </div>
+        <div class="user"><b id="userName">Ana Martínez</b><small id="userRol">Administradora</small><br><button onclick="location.reload()" style="background:none;border:0;color:#aaa;cursor:pointer;margin-top:8px">← Cerrar sesión</button></div>
+    </aside>
+
+    <main class="main">
+        <div class="top"><div><h1 id="titulo">Resumen</h1><p style="color:#666">Así se mueve tu operación hoy.</p></div><span style="background:#eee;padding:6px 10px;border-radius:20px;font-size:12px">✅ Conectado a DB real</span></div>
+
+        <!-- RESUMEN -->
+        <div id="sec-resumen">
+            <div class="cards">
+                <div class="card"><small>Ventas totales (DB)</small><h3 id="rVentas">$0</h3><span class="badge ok" id="rVentasN">0 ventas</span></div>
+                <div class="card"><small>Unidades disponibles</small><h3 id="rStock">0</h3><span class="badge ok" id="rProd">0 productos</span></div>
+                <div class="card"><small>Pedidos abiertos</small><h3 id="rPedidos">0</h3><span class="badge warn">Por recibir</span></div>
+            </div>
+            <div class="grid2">
+                <div class="box"><h3>⚠️ Atención requerida</h3><p style="color:#666;font-size:13px;margin:4px 0 10px" id="bajoCount"></p><div id="bajoList"></div></div>
+                <div class="box"><h3>🛒 Ventas recientes</h3><div id="ventasResumen"></div></div>
+            </div>
+            <div class="box"><h3>Accesos rápidos</h3><br><button class="btn2" onclick="show('portafolio')">Explorar portafolio →</button> <button class="btn2" onclick="show('inventario')">Revisar inventario →</button> <button class="btn" onclick="show('ventas')">Registrar venta →</button></div>
+        </div>
+
+        <!-- PORTAFOLIO / INVENTARIO -->
+        <div id="sec-portafolio" class="hidden"><div class="box"><h3>Portafolio — Productos reales de tu DB</h3><div id="listaProductos"></div></div></div>
+        <div id="sec-inventario" class="hidden"><div class="box"><h3>Inventario — Ajustar stock real</h3><p style="color:#666;font-size:13px">Si cambias el stock aquí, queda guardado en LaColmena.db</p><div id="listaInventario"></div></div></div>
+
+        <!-- VENTAS -->
+        <div id="sec-ventas" class="hidden">
+            <div class="grid2">
+                <div class="box"><h3>Registrar venta</h3><label>Cliente</label><input id="vCliente" value="Cliente Mostrador"><label>Producto</label><select id="vProducto"></select><label>Cantidad</label><input id="vCant" type="number" value="1" min="1"><button class="btn" style="width:100%;margin-top:10px" onclick="registrarVenta()">Confirmar venta ✅</button><p id="ventaMsg"></p></div>
+                <div class="box"><h3>Historial de ventas</h3><div id="listaVentas"></div></div>
+            </div>
+        </div>
+
+        <!-- PEDIDOS -->
+        <div id="sec-pedidos" class="hidden"><div class="box"><h3>Pedidos</h3><div id="listaPedidos"></div></div></div>
+
+        <!-- REPORTES -->
+        <div id="sec-reportes" class="hidden"><div class="box"><h3>Reportes</h3><p id="repTexto"></p><table><tr><th>Producto</th><th>Precio</th><th>Stock</th><th>Valor en inventario</th></tr><tbody id="repTabla"></tbody></table><h3 id="repTotal" style="margin-top:12px"></h3></div></div>
+
+        <!-- USUARIOS -->
+        <div id="sec-usuarios" class="hidden"><div class="box"><h3>Usuarios reales</h3><div id="listaUsuarios"></div></div></div>
+
+    </main>
+    <script>
+let productos=[];
+async function login(){
+  let r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value,password:document.getElementById('pass').value})});
+  let d=await r.json();
+  if(!d.ok){document.getElementById('loginError').innerText=d.error;return;}
+  document.getElementById('userName').innerText=d.usuario.nombre;
+  document.getElementById('userRol').innerText=d.usuario.rol;
+  document.getElementById('login').style.display='none';
+  cargarTodo();
+}
+function show(id,btn){
+  document.querySelectorAll('[id^="sec-"]').forEach(e=>e.classList.add('hidden'));
+  document.getElementById('sec-'+id).classList.remove('hidden');
+  document.getElementById('titulo').innerText=id[0].toUpperCase()+id.slice(1);
+  if(btn){document.querySelectorAll('.menu button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+}
+async function cargarTodo(){
+  let res=await fetch('/api/resumen').then(r=>r.json());
+  document.getElementById('rVentas').innerText='$'+res.ventas_total.toLocaleString('es-CO');
+  document.getElementById('rVentasN').innerText=res.ventas_n+' ventas';
+  document.getElementById('rStock').innerText=res.stock;
+  document.getElementById('rProd').innerText=res.total_productos+' productos';
+  document.getElementById('rPedidos').innerText=res.pedidos_abiertos;
+  document.getElementById('bajoCount').innerText=res.bajo_stock.length+' productos con stock bajo';
+  document.getElementById('bajoList').innerHTML=res.bajo_stock.map(p=>`<p class="alerta">⚠️ ${p.nombre} — ${p.stock} disponibles · mínimo ${p.minimo}</p>`).join('')||'<p>✅ Sin alertas</p>';
+
+  productos=await fetch('/api/productos').then(r=>r.json());
+  document.getElementById('listaProductos').innerHTML=`<table><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th></tr>${productos.map(p=>`<tr><td><b>${p.nombre}</b></td><td>${p.categoria}</td><td>$${p.precio.toLocaleString()}</td><td>${p.stock}</td></tr>`).join('')}</table>`;
+  document.getElementById('listaInventario').innerHTML=productos.map(p=>`<div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid #eee"><b style="flex:1">${p.nombre}</b><input type="number" value="${p.stock}" id="stock-${p.id}" style="width:90px"><button class="btn2" onclick="ajustar(${p.id})">Guardar</button></div>`).join('');
+  document.getElementById('vProducto').innerHTML=productos.map(p=>`<option value="${p.id}">${p.nombre} — $${p.precio} (stock ${p.stock})</option>`).join('');
+
+  let ventas=await fetch('/api/ventas').then(r=>r.json());
+  let htmlVentas=ventas.map(v=>`<tr><td><b>#V-${v.id}</b></td><td>${v.cliente}</td><td><span class="badge ${v.estado=='Pagada'?'ok':'warn'}">${v.estado}</span></td><td style="text-align:right"><b>$${v.total.toLocaleString()}</b></td></tr>`).join('');
+  document.getElementById('listaVentas').innerHTML=`<table><tr><th>Venta</th><th>Cliente</th><th>Estado</th><th>Total</th></tr>${htmlVentas}</table>`;
+  document.getElementById('ventasResumen').innerHTML=`<table><tr><th>Venta</th><th>Cliente</th><th>Total</th></tr>${ventas.slice(0,3).map(v=>`<tr><td>#V-${v.id}</td><td>${v.cliente}</td><td>$${v.total.toLocaleString()}</td></tr>`).join('')}</table>`;
+
+  let pedidos=await fetch('/api/pedidos').then(r=>r.json());
+  document.getElementById('listaPedidos').innerHTML=`<table><tr><th>Proveedor</th><th>Producto</th><th>Cant</th><th>Estado</th></tr>${pedidos.map(p=>`<tr><td>${p.proveedor}</td><td>${p.producto}</td><td>${p.cantidad}</td><td><span class="badge warn">${p.estado}</span></td></tr>`).join('')}</table>`;
+
+  let usuarios=await fetch('/api/usuarios').then(r=>r.json());
+  document.getElementById('listaUsuarios').innerHTML=`<table><tr><th>Nombre</th><th>Email</th><th>Rol</th></tr>${usuarios.map(u=>`<tr><td><b>${u.nombre}</b></td><td>${u.email}</td><td>${u.rol}</td></tr>`).join('')}</table>`;
+
+  let totalInv=productos.reduce((a,p)=>a+p.precio*p.stock,0);
+  document.getElementById('repTabla').innerHTML=productos.map(p=>`<tr><td>${p.nombre}</td><td>$${p.precio.toLocaleString()}</td><td>${p.stock}</td><td>$${(p.precio*p.stock).toLocaleString()}</td></tr>`).join('');
+  document.getElementById('repTotal').innerText='Valor total del inventario: $'+totalInv.toLocaleString('es-CO');
+  document.getElementById('repTexto').innerText=`Tienes ${productos.length} productos y ${res.stock} unidades en total.`;
+}
+async function ajustar(id){
+  let stock=document.getElementById('stock-'+id).value;
+  await fetch('/api/productos/ajustar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,stock:parseInt(stock)})});
+  alert('Stock guardado en DB ✅'); cargarTodo();
+}
+async function registrarVenta(){
+  let r=await fetch('/api/ventas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cliente:document.getElementById('vCliente').value,producto_id:parseInt(document.getElementById('vProducto').value),cantidad:parseInt(document.getElementById('vCant').value)})});
+  let d=await r.json();
+  if(!d.ok){document.getElementById('ventaMsg').innerText='❌ '+d.error;return;}
+  document.getElementById('ventaMsg').innerText='✅ Venta registrada por $'+d.total.toLocaleString()+' y descontada del inventario';
+  cargarTodo();
+}
+    </script>
+</body>
+</html>
