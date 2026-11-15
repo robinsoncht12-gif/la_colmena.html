@@ -4,7 +4,7 @@ PUNTO DE ENTRADA PRINCIPAL: LaColmena WEB MVP
 Cátedra: Ingeniería de Software 3 [IF0129] - Corporación Universitaria Remington
 Docente: Ing. Jhon Alexander Rosero Lasso, MSc en Inteligencia Artificial
 Patrones: Clean Architecture, SOLID, ACID Local, SoD, Saga Orchestrator
-Tecnología: Python 3.10+ Standard Library (CERO DEPENDENCIAS / CERO PIP INSTALL)
+Tecnología: Python 3.10+ Standard Library + argon2-cffi + pika (RabbitMQ)
 ========================================================================================
 """
 import os
@@ -90,7 +90,8 @@ if __name__ == "__main__":
     print("Docente: Ing. Jhon Alexander Rosero Lasso, MSc en IA")
     print("Patrones: SOLID | ACID (SQLite WAL) | Saga Orchestrator | Outbox Pattern | Fail-Fast")
     print(f"🔗 Servidor Web y API REST activo en: {URL}")
-    print("🧪 Suite de pruebas automatizadas: python3 -m unittest tests/test_LaColmena.py")
+    test_dir = os.path.join(BASE_DIR, "tests")
+    print(f'🧪 Suite de pruebas: python -m unittest discover -s "{test_dir}" -p "test_*.py"')
     print("=" * 85)
 
     # Iniciar subproceso de apertura de interfaz web resiliente

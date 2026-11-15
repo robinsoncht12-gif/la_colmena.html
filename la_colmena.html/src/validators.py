@@ -7,7 +7,7 @@ Dependencias: NINGUNA (Python Standard Library `re`, `typing`)
 ========================================================================================
 """
 import re
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any
 
 class ValidationError(ValueError):
     """Excepción específica para violaciones de validación de negocio y sintaxis."""

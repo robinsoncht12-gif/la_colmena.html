@@ -2,6 +2,9 @@ import threading
 import queue
 from collections import defaultdict
 from typing import Callable
+from src.logger import get_logger
+
+logger = get_logger("EventBus")
 
 class InMemoryEventBus:
     def __init__(self):
@@ -26,8 +29,8 @@ class InMemoryEventBus:
                 for h in self._subs.get(event_type, []):
                     try:
                         h(event)
-                    except:
-                        pass
+                    except Exception:
+                        logger.exception("Falló un manejador del evento %s", event_type)
             except queue.Empty:
                 continue
 

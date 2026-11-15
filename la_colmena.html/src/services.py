@@ -4,19 +4,17 @@ CAPA DE SERVICIOS Y LÓGICA DE NEGOCIO (SRP, SAGA, IDEMPOTENCIA, COMPENSACIÓN I
 Cátedra: Ingeniería de Software 3 [IF0129] - Uniremington
 Patrón: Saga Pattern (Orchestrator), Idempotent Receiver, Fail-Fast con Validaciones
 Buenas Prácticas: SoD, Inyección de Dependencias (DIP), Logging Estructurado
-Dependencias: NINGUNA (Python Standard Library `time`, `json`, `uuid`, `typing`)
+Dependencias: NINGUNA (Python Standard Library `time`, `json`)
 ========================================================================================
 """
 import time
-import json
-import uuid
-
-from typing import Dict, Any, Optional, List
+import copy
 from src.models import Pedido, ItemPedido, EstadoPedido
 from src.interfaces import IProductoRepository, IPedidoRepository, IOutboxRepository, IPasarelaPagos
 from src.validators import Validator, ValidationError
 from src.logger import get_logger
-from src.events import crear_cloudevent, event_bus_global
+from src.events import crear_cloudevent
+from src.database import DB_PATH, database_connection
 
 logger = get_logger("Services")
 
@@ -29,10 +27,41 @@ class ColmenaService:
     def __init__(self, 
                  producto_repo: IProductoRepository, 
                  pedido_repo: IPedidoRepository,
-                 outbox_repo: IOutboxRepository):
+                 outbox_repo: IOutboxRepository,
+                 db_path: str = DB_PATH):
         self.producto_repo = producto_repo
         self.pedido_repo = pedido_repo
         self.outbox_repo = outbox_repo
+        self.db_path = db_path
+
+    def _registrar_evento(
+        self,
+        connection,
+        aggregate_id: str,
+        event_type: str,
+        data: dict,
+    ) -> None:
+        event = crear_cloudevent(event_type, data)
+        self.outbox_repo.registrar_evento(
+            aggregate_id, event.to_dict(), connection
+        )
+
+    @staticmethod
+    def _datos_pedido(pedido: Pedido) -> dict:
+        return {
+            "order_id": pedido.id_pedido,
+            "client_id": pedido.cliente_id,
+            "total": pedido.total,
+            "items": [
+                {
+                    "product_code": item.producto_codigo,
+                    "quantity": item.cantidad,
+                    "unit_price": item.precio_unitario,
+                }
+                for item in pedido.items
+            ],
+            "idempotency_key": pedido.idempotency_key,
+        }
 
     def listar_catalogo(self):
         """Consulta el catálogo completo de productos disponibles."""
@@ -62,82 +91,151 @@ class ColmenaService:
         i_key = Validator.validar_idempotency_key(idempotency_key)
         items_validados = Validator.validar_items_pedido(items_req)
 
-        # --- ETAPA 2: COMPROBACIÓN DE IDEMPOTENCIA ---
         logger.info(f"Procesando pedido para cliente={c_id} con key={i_key}")
-        existente = self.pedido_repo.buscar_por_idempotency_key(i_key)
-        if existente:
-            logger.warning(f"⚠️ [Idempotencia] Petición duplicada detectada. Retornando pedido existente {existente.id_pedido}")
-            return existente
-
-        # --- ETAPA 3: VERIFICACIÓN DE STOCK Y CONSTRUCCIÓN DE ITEMS ---
-        items = []
-        for it in items_validados:
-            prod = self.producto_repo.buscar_por_codigo(it["codigo"])
-            if not prod:
-                logger.error(f"Validación de catálogo fallida: El código '{it['codigo']}' no existe.")
-                raise ValidationError(f"Producto '{it['codigo']}' no existe en el catálogo farmacéutico.", campo="codigo")
-            
-            if not prod.tiene_stock(it["cantidad"]):
-                logger.error(f"Stock insuficiente para {prod.nombre} (SKU: {prod.codigo}). Solicitado: {it['cantidad']}, Disponible: {prod.stock_disponible}")
-                raise ValidationError(
-                    f"Stock insuficiente para '{prod.nombre}'. Solicitado: {it['cantidad']}, Disponible: {prod.stock_disponible}",
-                    campo="stock"
-                )
-            items.append(ItemPedido(prod.codigo, it["cantidad"], prod.precio))
-
-        # --- ETAPA 4: INSTANCIACIÓN DEL AGREGADO PEDIDO ---
-        pedido = Pedido(
-            id_pedido=f"PED-{int(time.time()*1000)}",
-            cliente_id=c_id,
-            cliente_nombre=c_nombre,
-            cliente_direccion=c_dir,
-            items=items,
-            estado=EstadoPedido.PENDIENTE,
-            idempotency_key=i_key
-        )
-        pedido.calcular_total()
-        pedido.transicionar_a(EstadoPedido.RESERVADO_SEMANTIC_LOCK, "Stock reservado preventivamente (Semantic Lock)")
-
-        # --- ETAPA 5: DESCUENTO ATÓMICO DE STOCK ---
-        for it in items:
-            prod = self.producto_repo.buscar_por_codigo(it.producto_codigo)
-            nuevo_stock = prod.stock_disponible - it.cantidad
-            self.producto_repo.actualizar_stock(prod.codigo, nuevo_stock)
-            logger.debug(f"Stock actualizado para {prod.codigo}: {prod.stock_disponible} -> {nuevo_stock}")
-
-        # Persistir Pedido con estado RESERVADO_SEMANTIC_LOCK
-        self.pedido_repo.guardar(pedido)
-        logger.info(f"✅ Pedido {pedido.id_pedido} registrado exitosamente. Total=${pedido.total:,.2f}")
-
-              # --- ETAPA 6: TRANSACTIONAL OUTBOX + EVENT BUS REACTIVO (Reto 3) ---
-        evento_payload = {
-            "id_pedido": pedido.id_pedido,
-            "cliente_id": pedido.cliente_id,
-            "total": pedido.total,
-            "items_count": len(pedido.items),
-            "idempotency_key": pedido.idempotency_key,
-            "timestamp": pedido.timestamp
-        }
-        self.outbox_repo.registrar_evento(
-            aggregate_id=pedido.id_pedido,
-            event_type="co.edu.uniremington.LaColmena.pedido.creado", # <-- Sin .v1, norma CNCF
-            payload_json=json.dumps(evento_payload)
-        )
-        logger.debug(f"Evento Outbox emitido para pedido {pedido.id_pedido}")
-
-        # --- DESACOPLAMIENTO FINAL (Cumple T_async <=5ms) ---
-        try:
-            cloudevent = crear_cloudevent(
-                tipo='co.edu.uniremington.LaColmena.pedido.creado',
-                origen='/LaColmena/ordenes',
-                payload=evento_payload
+        with database_connection(self.db_path) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existente = self.pedido_repo.buscar_por_idempotency_key(
+                i_key, connection
             )
-            event_bus_global.publicar(cloudevent) # Publicación no bloqueante
-            logger.info(f"📤 [EventBus] Evento {cloudevent.type} publicado con id={cloudevent.id}")
-        except Exception as e:
-            logger.error(f"Error publicando evento: {e}")
+            if existente:
+                logger.warning(
+                    "Petición duplicada; se retorna el pedido %s",
+                    existente.id_pedido,
+                )
+                return existente
 
+            productos = {}
+            items = []
+            for item in items_validados:
+                product = self.producto_repo.buscar_por_codigo(
+                    item["codigo"], connection
+                )
+                if not product:
+                    raise ValidationError(
+                        f"Producto '{item['codigo']}' no existe en el catálogo.",
+                        campo="codigo",
+                    )
+                if not product.tiene_stock(item["cantidad"]):
+                    raise ValidationError(
+                        f"Stock insuficiente para '{product.nombre}'. "
+                        f"Solicitado: {item['cantidad']}, "
+                        f"Disponible: {product.stock_disponible}",
+                        campo="stock",
+                    )
+                productos[product.codigo] = product
+                items.append(
+                    ItemPedido(
+                        product.codigo,
+                        item["cantidad"],
+                        product.precio,
+                    )
+                )
+
+            pedido = Pedido(
+                id_pedido=f"PED-{int(time.time() * 1000)}",
+                cliente_id=c_id,
+                cliente_nombre=c_nombre,
+                cliente_direccion=c_dir,
+                items=items,
+                estado=EstadoPedido.PENDIENTE,
+                idempotency_key=i_key,
+            )
+            pedido.calcular_total()
+            pedido.transicionar_a(
+                EstadoPedido.RESERVADO_SEMANTIC_LOCK,
+                "Stock reservado preventivamente (Semantic Lock)",
+            )
+
+            for item in items:
+                product = productos[item.producto_codigo]
+                new_stock = product.stock_disponible - item.cantidad
+                if not self.producto_repo.actualizar_stock(
+                    product.codigo, new_stock, connection
+                ):
+                    raise RuntimeError(
+                        f"No se pudo actualizar el inventario de {product.codigo}."
+                    )
+                self._registrar_evento(
+                    connection,
+                    pedido.id_pedido,
+                    "bina.la_colmena.inventario.reservado",
+                    {
+                        "order_id": pedido.id_pedido,
+                        "product_code": product.codigo,
+                        "quantity": item.cantidad,
+                        "previous_stock": product.stock_disponible,
+                        "stock": new_stock,
+                    },
+                )
+
+            self.pedido_repo.guardar(pedido, connection)
+            self._registrar_evento(
+                connection,
+                pedido.id_pedido,
+                "bina.la_colmena.pedido.creado",
+                self._datos_pedido(pedido),
+            )
+
+        logger.info(
+            "Pedido %s registrado. Total=$%.2f", pedido.id_pedido, pedido.total
+        )
         return pedido
+
+    def guardar_pedido_y_evento(
+        self,
+        pedido: Pedido,
+        event_type: str,
+    ) -> None:
+        with database_connection(self.db_path) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            self.pedido_repo.guardar(pedido, connection)
+            self._registrar_evento(
+                connection,
+                pedido.id_pedido,
+                event_type,
+                self._datos_pedido(pedido),
+            )
+
+    def compensar_pedido(self, pedido: Pedido, motivo: str) -> Pedido:
+        pedido_compensado = copy.deepcopy(pedido)
+        with database_connection(self.db_path) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            for item in pedido_compensado.items:
+                product = self.producto_repo.buscar_por_codigo(
+                    item.producto_codigo, connection
+                )
+                if not product:
+                    raise RuntimeError(
+                        f"No se encontró el producto {item.producto_codigo} "
+                        "durante la compensación."
+                    )
+                restored_stock = product.stock_disponible + item.cantidad
+                self.producto_repo.actualizar_stock(
+                    product.codigo, restored_stock, connection
+                )
+                self._registrar_evento(
+                    connection,
+                    pedido_compensado.id_pedido,
+                    "bina.la_colmena.inventario.restaurado",
+                    {
+                        "order_id": pedido_compensado.id_pedido,
+                        "product_code": product.codigo,
+                        "quantity": item.cantidad,
+                        "previous_stock": product.stock_disponible,
+                        "stock": restored_stock,
+                    },
+                )
+            pedido_compensado.transicionar_a(
+                EstadoPedido.COMPENSADO, motivo
+            )
+            self.pedido_repo.guardar(pedido_compensado, connection)
+            self._registrar_evento(
+                connection,
+                pedido_compensado.id_pedido,
+                "bina.la_colmena.pedido.compensado",
+                self._datos_pedido(pedido_compensado),
+            )
+        return pedido_compensado
 
 
 class PasarelaPagosMock(IPasarelaPagos):
@@ -225,7 +323,9 @@ class SagaOrquestadorMatriculaPedido:
                 raise RuntimeError("Falla en Pasarela de Pagos (Rechazo Financiero). Disparando Compensación Inversa (C1).")
 
             pedido.transicionar_a(EstadoPedido.PAGADO, "Cobro aprobado por pasarela financiera")
-            self.Colmena_service.pedido_repo.guardar(pedido)
+            self.Colmena_service.guardar_pedido_y_evento(
+                pedido, "bina.la_colmena.pedido.pagado"
+            )
             msg_t2 = f"T2 [Pagos]: Débito de ${pedido.total:,.2f} exitoso en pasarela."
             log_saga.append(msg_t2)
             logger.info(msg_t2)
@@ -234,7 +334,9 @@ class SagaOrquestadorMatriculaPedido:
             # PASO T3: Facturación Electrónica y Despacho
             # =========================================================================
             pedido.transicionar_a(EstadoPedido.COMPLETADO, "Orden facturada y lista para despacho logístico")
-            self.Colmena_service.pedido_repo.guardar(pedido)
+            self.Colmena_service.guardar_pedido_y_evento(
+                pedido, "bina.la_colmena.pedido.completado"
+            )
             msg_t3 = "T3 [Facturación]: Factura electrónica emitida. Saga completada exitosamente."
             log_saga.append(msg_t3)
             logger.info(msg_t3)
@@ -251,17 +353,10 @@ class SagaOrquestadorMatriculaPedido:
 
             if 'pedido' in locals() and pedido is not None:
                 logger.warning(f"Iniciando Compensación C1 para Pedido {pedido.id_pedido}...")
-                
-                # C1: Devolver stock al almacén
-                for it in pedido.items:
-                    prod = self.Colmena_service.producto_repo.buscar_por_codigo(it.producto_codigo)
-                    if prod:
-                        stock_restaurado = prod.stock_disponible + it.cantidad
-                        self.Colmena_service.producto_repo.actualizar_stock(prod.codigo, stock_restaurado)
-                        logger.info(f"↩️ C1: Stock restaurado para {prod.codigo}: {prod.stock_disponible} -> {stock_restaurado}")
-
-                pedido.transicionar_a(EstadoPedido.COMPENSADO, f"Aborto por falla en paso T2: {str(e)}")
-                self.Colmena_service.pedido_repo.guardar(pedido)
+                pedido = self.Colmena_service.compensar_pedido(
+                    pedido,
+                    f"Aborto por falla en paso T2: {str(e)}",
+                )
                 msg_c1 = "C1 [Compensación Inventario]: Stock devuelto a la Colmena. Estado: COMPENSADO."
                 log_saga.append(msg_c1)
                 logger.info(msg_c1)

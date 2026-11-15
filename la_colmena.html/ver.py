@@ -1,10 +1,9 @@
-import sqlite3
-import os
-print("Estoy en:", os.getcwd())
-con = sqlite3.connect('LaColmena.db')
-cur = con.cursor()
-cur.execute("SELECT * FROM productos")
-rows = cur.fetchall()
+from src.database import DB_PATH, database_connection
+
+with database_connection() as connection:
+    rows = connection.execute("SELECT * FROM productos").fetchall()
+
+print("Base de datos:", DB_PATH)
 print("TOTAL productos:", len(rows))
-for r in rows:
-    print(r)
+for row in rows:
+    print(row)

@@ -189,20 +189,428 @@
         #login {
             position: fixed;
             inset: 0;
-            background: #f6f3ee;
+            padding: 28px;
+            overflow-y: auto;
             display: grid;
             place-items: center;
-            z-index: 99
+            z-index: 99;
+            background:
+                radial-gradient(ellipse at 12% 18%, rgba(241, 183, 74, .16), transparent 34%),
+                radial-gradient(ellipse at 92% 84%, rgba(217, 139, 41, .15), transparent 36%),
+                #fbf7f0
         }
 
         .loginbox {
             background: #fff;
-            padding: 28px;
-            border-radius: 14px;
-            width: 360px;
-            max-width: 92vw;
-            box-shadow: 0 10px 30px rgba(0,0,0,.1);
-            text-align: center
+            width: min(1080px, 100%);
+            min-height: 640px;
+            display: grid;
+            grid-template-columns: 1.04fr .96fr;
+            border: 1px solid rgba(88, 55, 22, .1);
+            border-radius: 26px;
+            overflow: hidden;
+            box-shadow: 0 28px 80px rgba(71, 43, 19, .17);
+            text-align: left
+        }
+
+        .login-brand-panel {
+            position: relative;
+            isolation: isolate;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 40px 44px 32px;
+            overflow: hidden;
+            color: #48270d;
+            background:
+                radial-gradient(circle at 88% 15%, rgba(255, 247, 204, .62), transparent 29%),
+                radial-gradient(circle at 8% 92%, rgba(255, 119, 26, .24), transparent 36%),
+                linear-gradient(145deg, #ffd342, #ffae24 56%, #f47d1b)
+        }
+
+        .login-brand-panel > :not(.hive-scene) {
+            position: relative;
+            z-index: 1
+        }
+
+        .hive-scene {
+            position: absolute;
+            z-index: 0;
+            top: 112px;
+            right: 13px;
+            width: 200px;
+            height: 215px;
+            opacity: .9;
+            pointer-events: none
+        }
+
+        .hive-cells {
+            width: 100%;
+            height: 100%;
+            overflow: visible
+        }
+
+        .hive-cells path {
+            fill: rgba(255, 252, 227, .18);
+            stroke: rgba(132, 72, 15, .31);
+            stroke-width: 1.2;
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: hive-pulse 4.8s ease-in-out infinite
+        }
+
+        .hive-cells path:nth-child(2n) {
+            animation-delay: -1.6s
+        }
+
+        .hive-cells path:nth-child(3n) {
+            animation-delay: -3.2s
+        }
+
+        .hive-bee {
+            position: absolute;
+            top: 55%;
+            left: 8%;
+            z-index: 2;
+            display: block;
+            font-size: 30px;
+            line-height: 1;
+            filter: drop-shadow(0 5px 7px rgba(0,0,0,.3));
+            animation: bee-flight 10s ease-in-out infinite
+        }
+
+        @keyframes bee-flight {
+            0%, 100% { top: 55%; left: 8%; transform: rotate(-12deg) }
+            18% { top: 36%; left: 38%; transform: rotate(12deg) }
+            36% { top: 22%; left: 61%; transform: rotate(-2deg) }
+            54% { top: 53%; left: 63%; transform: rotate(17deg) }
+            72% { top: 69%; left: 37%; transform: rotate(-13deg) }
+            88% { top: 43%; left: 9%; transform: rotate(-22deg) }
+        }
+
+        @keyframes hive-pulse {
+            0%, 100% { fill: rgba(255, 252, 227, .11) }
+            50% { fill: rgba(255, 252, 227, .32) }
+        }
+
+        .login-brand-panel::after {
+            content: "";
+            position: absolute;
+            z-index: -1;
+            width: 350px;
+            height: 350px;
+            right: -170px;
+            bottom: -180px;
+            border: 1px solid rgba(107, 57, 13, .13);
+            border-radius: 50%;
+            box-shadow: 0 0 0 28px rgba(107,57,13,.025), 0 0 0 58px rgba(107,57,13,.02)
+        }
+
+        .login-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #48270d;
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: 1.7px
+        }
+
+        .login-brand small {
+            display: block;
+            margin-top: 3px;
+            color: #70491e;
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 2.5px
+        }
+
+        .login-brand-mark {
+            display: grid;
+            width: 46px;
+            height: 46px;
+            place-items: center;
+            border: 1px solid rgba(103,58,14,.2);
+            border-radius: 15px;
+            background: rgba(255,255,255,.32);
+            font-size: 25px;
+            animation: bee-hover 3s ease-in-out infinite
+        }
+
+        @keyframes bee-hover {
+            0%, 100% { transform: translateY(0) rotate(-4deg) }
+            50% { transform: translateY(-4px) rotate(4deg) }
+        }
+
+        .login-brand-copy {
+            max-width: 440px;
+            margin: 58px 0 36px
+        }
+
+        .login-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 18px;
+            color: #78400e;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 1.7px;
+            text-transform: uppercase
+        }
+
+        .login-eyebrow::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #8d4a0d;
+            box-shadow: 0 0 0 4px rgba(141,74,13,.14)
+        }
+
+        .login-brand-copy h1 {
+            max-width: 430px;
+            font-size: clamp(36px, 4vw, 52px);
+            line-height: 1.08;
+            letter-spacing: -2px
+        }
+
+        .login-brand-copy h1 span {
+            color: #8d3e0c
+        }
+
+        .login-brand-copy p {
+            max-width: 390px;
+            margin-top: 18px;
+            color: #5e401f;
+            font-size: 15px;
+            line-height: 1.75
+        }
+
+        .login-features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px
+        }
+
+        .login-feature {
+            min-height: 98px;
+            padding: 14px 12px;
+            border: 1px solid rgba(115,63,18,.15);
+            border-radius: 15px;
+            background: rgba(255,255,255,.34)
+        }
+
+        .login-feature span {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 19px
+        }
+
+        .login-feature strong {
+            color: #593512;
+            font-size: 11px;
+            font-weight: 650
+        }
+
+        .login-brand-footer {
+            margin-top: 25px;
+            color: #70471c;
+            font-size: 11px;
+            letter-spacing: .2px
+        }
+
+        .login-form-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px
+        }
+
+        .login-form-content {
+            width: 100%;
+            max-width: 370px
+        }
+
+        .login-mobile-brand {
+            display: none
+        }
+
+        .login-form-heading .login-eyebrow {
+            margin-bottom: 13px;
+            color: #b87518
+        }
+
+        .login-form-heading .login-eyebrow::before {
+            background: #d9972f;
+            box-shadow: 0 0 0 4px rgba(217,151,47,.13)
+        }
+
+        .login-form-heading h2 {
+            color: #49301e;
+            font-size: 34px;
+            letter-spacing: -1.3px
+        }
+
+        .login-form-heading p {
+            margin-top: 9px;
+            color: #84796e;
+            font-size: 14px;
+            line-height: 1.6
+        }
+
+        .login-form {
+            margin-top: 32px
+        }
+
+        .login-form label {
+            display: block;
+            margin: 18px 0 8px;
+            color: #59412c;
+            font-size: 12px;
+            font-weight: 700
+        }
+
+        .login-input-wrap {
+            position: relative
+        }
+
+        .login-input-wrap input {
+            width: 100%;
+            height: 50px;
+            margin: 0;
+            padding: 0 44px;
+            border: 1px solid #e8dfd2;
+            border-radius: 11px;
+            outline: none;
+            background: #fdfbf8;
+            color: #493a2b;
+            font-size: 14px;
+            transition: border-color .2s, box-shadow .2s, background .2s
+        }
+
+        .login-input-wrap input:focus {
+            border-color: #d9a24f;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(217, 151, 47, .14)
+        }
+
+        .login-input-wrap input::placeholder {
+            color: #aa9d8e
+        }
+
+        .login-field-icon {
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            width: 17px;
+            height: 17px;
+            color: #9b8973;
+            transform: translateY(-50%);
+            pointer-events: none
+        }
+
+        .login-password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            display: grid;
+            width: 30px;
+            height: 30px;
+            place-items: center;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #93816b;
+            cursor: pointer;
+            transform: translateY(-50%)
+        }
+
+        .login-password-toggle:hover {
+            background: #fff3df;
+            color: #9b5b1a
+        }
+
+        .login-password-toggle svg {
+            width: 17px;
+            height: 17px
+        }
+
+        .login-submit {
+            display: flex;
+            width: 100%;
+            height: 52px;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 25px;
+            border: 0;
+            border-radius: 11px;
+            background: linear-gradient(100deg, #d98220, #e9a83b);
+            box-shadow: 0 8px 18px rgba(205, 127, 28, .2);
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 750;
+            transition: transform .18s, box-shadow .18s, filter .18s
+        }
+
+        .login-submit:hover:not(:disabled) {
+            box-shadow: 0 11px 22px rgba(205, 127, 28, .28);
+            filter: saturate(1.08);
+            transform: translateY(-1px)
+        }
+
+        .login-submit:disabled {
+            cursor: wait;
+            opacity: .8
+        }
+
+        .login-submit svg {
+            width: 17px;
+            height: 17px;
+            transition: transform .18s
+        }
+
+        .login-submit:hover:not(:disabled) svg {
+            transform: translateX(3px)
+        }
+
+        .login-spinner {
+            width: 17px;
+            height: 17px;
+            border: 2px solid rgba(255,255,255,.45);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: login-spin .7s linear infinite
+        }
+
+        @keyframes login-spin {
+            to { transform: rotate(360deg) }
+        }
+
+        .login-error {
+            min-height: 20px;
+            margin-top: 11px;
+            color: #b42318;
+            font-size: 12px;
+            line-height: 1.5
+        }
+
+        .login-secure-note {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            margin-top: 18px;
+            color: #8d7b66;
+            font-size: 11px
+        }
+
+        .login-secure-note svg {
+            width: 14px;
+            height: 14px;
+            color: #b87518
         }
 
         @media(max-width:800px) {
@@ -218,6 +626,87 @@
             .cards, .grid2 {
                 grid-template-columns: 1fr
             }
+
+            #login {
+                padding: 18px
+            }
+
+            .loginbox {
+                width: min(520px, 100%);
+                min-height: 0;
+                grid-template-columns: 1fr
+            }
+
+            .login-brand-panel {
+                display: none
+            }
+
+            .login-form-panel {
+                padding: 48px 38px
+            }
+
+            .login-mobile-brand {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 35px;
+                color: #5e391a;
+                font-size: 13px;
+                font-weight: 800;
+                letter-spacing: 1.3px
+            }
+
+            .login-mobile-brand span:first-child {
+                display: grid;
+                width: 40px;
+                height: 40px;
+                place-items: center;
+                clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%);
+                background: #fff0d2;
+                font-size: 22px;
+                animation: bee-hover 3s ease-in-out infinite
+            }
+
+            .login-mobile-brand small {
+                display: block;
+                margin-top: 2px;
+                color: #9c856c;
+                font-size: 8px;
+                letter-spacing: 2px
+            }
+        }
+
+        @media(max-width:480px) {
+            #login {
+                padding: 12px
+            }
+
+            .loginbox {
+                border-radius: 20px
+            }
+
+            .login-form-panel {
+                padding: 34px 24px
+            }
+
+            .login-mobile-brand {
+                margin-bottom: 30px
+            }
+
+            .login-form-heading h2 {
+                font-size: 30px
+            }
+        }
+
+        @media(prefers-reduced-motion: reduce) {
+            .hive-cells path, .hive-bee, .login-brand-mark,
+            .login-mobile-brand span:first-child, .login-spinner {
+                animation: none
+            }
+
+            .login-submit, .login-submit svg {
+                transition: none
+            }
         }
     </style>
 </head>
@@ -225,29 +714,108 @@
 
     <div id="login">
         <div class="loginbox">
-            <h1>🐝 La Colmena</h1><p style="color:#666;margin:8px 0 16px">Gestión comercial</p>
-            <input id="email" value="demo@lacolmena.co"><input id="pass" type="password" value="demo123">
-            <button class="btn" style="width:100%;margin-top:8px" onclick="login()">Entrar</button><p id="loginError" style="color:red;font-size:13px;margin-top:8px"></p>
-            <p style="font-size:12px;color:#888;margin-top:10px">Demo: demo@lacolmena.co / demo123</p>
+            <section class="login-brand-panel" aria-label="La Colmena, gestión de supermercado">
+                <div class="login-brand">
+                    <span class="login-brand-mark" aria-hidden="true">🐝</span>
+                    <span>LA COLMENA<small>GESTIÓN DE SUPERMERCADO</small></span>
+                </div>
+                <div class="hive-scene" aria-hidden="true">
+                    <svg class="hive-cells" viewBox="0 0 200 215" fill="none">
+                        <path d="M20 2h34l18 32-18 32H20L2 34 20 2Z" transform="translate(24 5)"></path>
+                        <path d="M20 2h34l18 32-18 32H20L2 34 20 2Z" transform="translate(96 5)"></path>
+                        <path d="M20 2h34l18 32-18 32H20L2 34 20 2Z" transform="translate(60 67)"></path>
+                        <path d="M20 2h34l18 32-18 32H20L2 34 20 2Z" transform="translate(132 67)"></path>
+                        <path d="M20 2h34l18 32-18 32H20L2 34 20 2Z" transform="translate(24 129)"></path>
+                        <path d="M20 2h34l18 32-18 32H20L2 34 20 2Z" transform="translate(96 129)"></path>
+                    </svg>
+                    <span class="hive-bee">🐝</span>
+                </div>
+                <div class="login-brand-copy">
+                    <span class="login-eyebrow">Todo en un mismo lugar</span>
+                    <h1>Tu supermercado,<br><span>en armonía.</span></h1>
+                    <p>Productos, inventario y ventas conectados para que cada día fluya mejor.</p>
+                </div>
+                <div>
+                    <div class="login-features" aria-label="Funciones de La Colmena">
+                        <div class="login-feature"><span aria-hidden="true">🛍️</span><strong>Catálogo</strong></div>
+                        <div class="login-feature"><span aria-hidden="true">📦</span><strong>Inventario</strong></div>
+                        <div class="login-feature"><span aria-hidden="true">🧾</span><strong>Ventas</strong></div>
+                    </div>
+                    <p class="login-brand-footer">Una gestión más clara, de góndola a caja.</p>
+                </div>
+            </section>
+            <section class="login-form-panel" aria-label="Iniciar sesión">
+                <div class="login-form-content">
+                    <div class="login-mobile-brand">
+                        <span aria-hidden="true">🐝</span>
+                        <span>LA COLMENA<small>GESTIÓN DE SUPERMERCADO</small></span>
+                    </div>
+                    <div class="login-form-heading">
+                        <span class="login-eyebrow">Acceso seguro</span>
+                        <h2>¡Qué bueno verte!</h2>
+                        <p>Ingresa a tu cuenta para continuar con la operación.</p>
+                    </div>
+                    <form id="loginForm" class="login-form">
+                        <label for="email">Correo electrónico</label>
+                        <div class="login-input-wrap">
+                            <svg class="login-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <rect x="3" y="5" width="18" height="14" rx="3"></rect>
+                                <path d="m4 7 8 6 8-6"></path>
+                            </svg>
+                            <input id="email" type="email" autocomplete="off" placeholder="Correo electrónico" required>
+                        </div>
+                        <label for="pass">Contraseña</label>
+                        <div class="login-input-wrap">
+                            <svg class="login-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <rect x="4" y="10" width="16" height="11" rx="3"></rect>
+                                <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                                <path d="M12 14v3"></path>
+                            </svg>
+                            <input id="pass" type="password" autocomplete="off" placeholder="Contraseña" required>
+                            <button id="passwordToggle" class="login-password-toggle" type="button" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                    <path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"></path>
+                                    <circle cx="12" cy="12" r="2.5"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                        <button id="loginSubmit" class="login-submit" type="submit">
+                            <span id="loginSpinner" class="login-spinner" aria-hidden="true" hidden></span>
+                            <span id="loginButtonLabel">Ingresar al sistema</span>
+                            <svg id="loginButtonArrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M5 12h14M13 6l6 6-6 6"></path>
+                            </svg>
+                        </button>
+                        <p id="loginError" class="login-error" role="alert" aria-live="polite"></p>
+                    </form>
+                    <div class="login-secure-note">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                            <path d="M12 3 19 6v5c0 4.7-2.9 8-7 10-4.1-2-7-5.3-7-10V6l7-3Z"></path>
+                            <path d="m9 12 2 2 4-4"></path>
+                        </svg>
+                        Acceso protegido a tu espacio de trabajo
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
 
     <aside class="sidebar">
         <h2>🐝 La Colmena</h2><small>Gestión comercial</small>
         <div class="menu">
-            <button onclick="show('resumen',this)" class="active">📊 Resumen</button>
-            <button onclick="show('portafolio',this)">🛍️ Portafolio</button>
-            <button onclick="show('inventario',this)">📦 Inventario</button>
-            <button onclick="show('ventas',this)">🛒 Ventas</button>
-            <button onclick="show('pedidos',this)">📋 Pedidos</button>
-            <button onclick="show('reportes',this)">📈 Reportes</button>
-            <button onclick="show('usuarios',this)">👥 Usuarios</button>
+            <button data-section="resumen" data-roles="Administradora,Vendedor" onclick="show('resumen',this)" class="active">📊 Resumen</button>
+            <button data-section="portafolio" data-roles="Administradora,Vendedor,Cliente" onclick="show('portafolio',this)">🛍️ Portafolio</button>
+            <button data-section="inventario" data-roles="Administradora" onclick="show('inventario',this)">📦 Inventario</button>
+            <button data-section="ventas" data-roles="Administradora,Vendedor,Cliente" data-default-label="🛒 Ventas" data-client-label="🛒 Comprar" onclick="show('ventas',this)">🛒 Ventas</button>
+            <button data-section="pedidos" data-roles="Administradora,Vendedor" onclick="show('pedidos',this)">📋 Pedidos</button>
+            <button data-section="reportes" data-roles="Administradora,Vendedor" onclick="show('reportes',this)">📈 Reportes</button>
+            <button data-section="usuarios" data-roles="Administradora" onclick="show('usuarios',this)">👥 Usuarios</button>
         </div>
-        <div class="user"><b id="userName">Ana Martínez</b><small id="userRol">Administradora</small><br><button onclick="location.reload()" style="background:none;border:0;color:#aaa;cursor:pointer;margin-top:8px">← Cerrar sesión</button></div>
+        <div class="user"><b id="userName">Ana Martínez</b><small id="userRol">Administradora</small><br><button onclick="cerrarSesion()" style="background:none;border:0;color:#aaa;cursor:pointer;margin-top:8px">← Cerrar sesión</button></div>
     </aside>
 
     <main class="main">
-        <div class="top"><div><h1 id="titulo">Resumen</h1><p style="color:#666">Así se mueve tu operación hoy.</p></div><span style="background:#eee;padding:6px 10px;border-radius:20px;font-size:12px">✅ Conectado a DB real</span></div>
+        <div class="top"><div><h1 id="titulo">Resumen</h1><p id="subtitulo" style="color:#666">Así se mueve tu operación hoy.</p></div><span style="background:#eee;padding:6px 10px;border-radius:20px;font-size:12px">✅ Conectado a DB real</span></div>
 
         <!-- RESUMEN -->
         <div id="sec-resumen">
@@ -260,18 +828,18 @@
                 <div class="box"><h3>⚠️ Atención requerida</h3><p style="color:#666;font-size:13px;margin:4px 0 10px" id="bajoCount"></p><div id="bajoList"></div></div>
                 <div class="box"><h3>🛒 Ventas recientes</h3><div id="ventasResumen"></div></div>
             </div>
-            <div class="box"><h3>Accesos rápidos</h3><br><button class="btn2" onclick="show('portafolio')">Explorar portafolio →</button> <button class="btn2" onclick="show('inventario')">Revisar inventario →</button> <button class="btn" onclick="show('ventas')">Registrar venta →</button></div>
+            <div class="box"><h3>Accesos rápidos</h3><br><button class="btn2" onclick="show('portafolio')">Explorar portafolio →</button> <button id="quickInventoryBtn" class="btn2" onclick="show('inventario')">Revisar inventario →</button> <button class="btn" onclick="show('ventas')">Registrar venta →</button></div>
         </div>
 
         <!-- PORTAFOLIO / INVENTARIO -->
-        <div id="sec-portafolio" class="hidden"><div class="box"><h3>Portafolio — Productos reales de tu DB</h3><div id="listaProductos"></div></div></div>
+        <div id="sec-portafolio" class="hidden"><div class="box"><h3>Catálogo de productos</h3><div id="listaProductos"></div></div></div>
         <div id="sec-inventario" class="hidden"><div class="box"><h3>Inventario — Ajustar stock real</h3><p style="color:#666;font-size:13px">Si cambias el stock aquí, queda guardado en LaColmena.db</p><div id="listaInventario"></div></div></div>
 
         <!-- VENTAS -->
         <div id="sec-ventas" class="hidden">
             <div class="grid2">
-                <div class="box"><h3>Registrar venta</h3><label>Cliente</label><input id="vCliente" value="Cliente Mostrador"><label>Producto</label><select id="vProducto"></select><label>Cantidad</label><input id="vCant" type="number" value="1" min="1"><button class="btn" style="width:100%;margin-top:10px" onclick="registrarVenta()">Confirmar venta ✅</button><p id="ventaMsg"></p></div>
-                <div class="box"><h3>Historial de ventas</h3><div id="listaVentas"></div></div>
+                <div class="box"><h3 id="ventaTitulo">Registrar venta</h3><label id="clienteLabel" for="vCliente">Cliente</label><input id="vCliente" value="Cliente Mostrador"><label for="vProducto">Producto</label><select id="vProducto"></select><label for="vCant">Cantidad</label><input id="vCant" type="number" value="1" min="1"><button id="ventaSubmit" class="btn" style="width:100%;margin-top:10px" onclick="registrarVenta()">Confirmar venta ✅</button><p id="ventaMsg" role="status"></p></div>
+                <div id="historialVentasBox" class="box"><h3>Historial de ventas</h3><div id="listaVentas"></div></div>
             </div>
         </div>
 
@@ -282,28 +850,135 @@
         <div id="sec-reportes" class="hidden"><div class="box"><h3>Reportes</h3><p id="repTexto"></p><table><tr><th>Producto</th><th>Precio</th><th>Stock</th><th>Valor en inventario</th></tr><tbody id="repTabla"></tbody></table><h3 id="repTotal" style="margin-top:12px"></h3></div></div>
 
         <!-- USUARIOS -->
-        <div id="sec-usuarios" class="hidden"><div class="box"><h3>Usuarios reales</h3><div id="listaUsuarios"></div></div></div>
+        <div id="sec-usuarios" class="hidden">
+            <div class="box">
+                <h3>Crear cuenta</h3>
+                <form id="userForm" class="grid2">
+                    <div><label for="newUserName">Nombre</label><input id="newUserName" maxlength="120" required></div>
+                    <div><label for="newUserEmail">Correo electrónico</label><input id="newUserEmail" type="email" maxlength="254" required></div>
+                    <div><label for="newUserPassword">Contraseña inicial</label><input id="newUserPassword" type="password" minlength="12" autocomplete="new-password" required></div>
+                    <div><label for="newUserRole">Rol</label><select id="newUserRole"><option value="Vendedor">Vendedor</option><option value="Cliente">Cliente</option><option value="Administradora">Administrador</option></select></div>
+                    <button class="btn" type="submit">Crear usuario</button>
+                </form>
+                <p id="userMessage" role="status"></p>
+            </div>
+            <div class="box"><h3>Cuentas registradas</h3><div id="listaUsuarios"></div></div>
+        </div>
 
     </main>
     <script>
 let productos=[];
+let usuarioActual=null;
 async function login(){
-  let r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value,password:document.getElementById('pass').value})});
-  let d=await r.json();
-  if(!d.ok){document.getElementById('loginError').innerText=d.error;return;}
-  document.getElementById('userName').innerText=d.usuario.nombre;
-  document.getElementById('userRol').innerText=d.usuario.rol;
-  document.getElementById('login').style.display='none';
-  cargarTodo();
+  const error=document.getElementById('loginError');
+  const submit=document.getElementById('loginSubmit');
+  const spinner=document.getElementById('loginSpinner');
+  const label=document.getElementById('loginButtonLabel');
+  const arrow=document.getElementById('loginButtonArrow');
+  error.innerText='';
+  submit.disabled=true;
+  spinner.hidden=false;
+  arrow.hidden=true;
+  label.innerText='Validando acceso...';
+  try{
+    let r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value,password:document.getElementById('pass').value})});
+    let d=await r.json();
+    if(!d.ok){error.innerText=d.error;return;}
+    usuarioActual=d.usuario;
+    document.getElementById('userName').innerText=d.usuario.nombre;
+    document.getElementById('userRol').innerText=d.usuario.rol;
+    configurarInterfazRol(d.usuario);
+    document.getElementById('login').style.display='none';
+    await cargarTodo();
+  }catch(e){
+    if(document.getElementById('login').style.display==='none'){
+      document.getElementById('login').style.display='grid';
+      error.innerText='No fue posible cargar los datos.';
+    }else if(!error.innerText){
+      error.innerText='No fue posible conectar con el servidor.';
+    }
+  }finally{
+    submit.disabled=false;
+    spinner.hidden=true;
+    arrow.hidden=false;
+    label.innerText='Ingresar al sistema';
+  }
+}
+function configurarInterfazRol(usuario){
+  document.querySelectorAll('.menu button[data-roles]').forEach(button=>{
+    const roles=button.dataset.roles.split(',');
+    button.classList.toggle('hidden',!roles.includes(usuario.rol));
+    if(button.dataset.clientLabel){
+      button.innerText=usuario.rol==='Cliente'?button.dataset.clientLabel:button.dataset.defaultLabel;
+    }
+  });
+  const esAdministrador=usuario.rol==='Administradora';
+  const esCliente=usuario.rol==='Cliente';
+  document.getElementById('quickInventoryBtn').classList.toggle('hidden',!esAdministrador);
+  document.getElementById('ventaTitulo').innerText=esCliente?'Comprar productos':'Registrar venta';
+  document.getElementById('ventaSubmit').innerText=esCliente?'Realizar compra':'Confirmar venta ✅';
+  document.getElementById('clienteLabel').innerText=esCliente?'Cuenta de compra':'Cliente';
+  document.getElementById('vCliente').value=esCliente?usuario.email:'Cliente Mostrador';
+  document.getElementById('vCliente').readOnly=esCliente;
+  document.getElementById('historialVentasBox').classList.toggle('hidden',esCliente);
+  const primeraSeccion=esCliente?'portafolio':'resumen';
+  const botonInicial=document.querySelector(`[data-section="${primeraSeccion}"]`);
+  show(primeraSeccion,botonInicial);
+}
+document.getElementById('loginForm').addEventListener('submit',event=>{
+  event.preventDefault();
+  login();
+});
+document.getElementById('passwordToggle').addEventListener('click',()=>{
+  const password=document.getElementById('pass');
+  const showPassword=password.type==='password';
+  password.type=showPassword?'text':'password';
+  const label=showPassword?'Ocultar contraseña':'Mostrar contraseña';
+  document.getElementById('passwordToggle').setAttribute('aria-label',label);
+  document.getElementById('passwordToggle').setAttribute('title',label);
+});
+['email','pass'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>{
+    document.getElementById('loginError').innerText='';
+  });
+});
+async function cerrarSesion(){
+  try{
+    const response=await fetch('/api/logout',{method:'POST'});
+    if(!response.ok)throw new Error('No se pudo cerrar la sesión');
+    location.reload();
+  }catch(e){
+    alert('No fue posible cerrar la sesión. Inténtalo de nuevo.');
+  }
+}
+async function apiJson(url,options){
+  const response=await fetch(url,options);
+  const data=await response.json();
+  if(response.status===401){
+    document.getElementById('login').style.display='grid';
+    document.getElementById('loginError').innerText='Tu sesión expiró. Inicia sesión nuevamente.';
+    throw new Error('Sesión expirada');
+  }
+  if(!response.ok||data.ok===false)throw new Error(data.error||'No fue posible completar la solicitud.');
+  return data;
 }
 function show(id,btn){
   document.querySelectorAll('[id^="sec-"]').forEach(e=>e.classList.add('hidden'));
   document.getElementById('sec-'+id).classList.remove('hidden');
-  document.getElementById('titulo').innerText=id[0].toUpperCase()+id.slice(1);
+  const esCliente=usuarioActual&&usuarioActual.rol==='Cliente';
+  const titles={resumen:'Resumen',portafolio:esCliente?'Catálogo':'Portafolio',inventario:'Inventario',ventas:esCliente?'Comprar':'Ventas',pedidos:'Pedidos',reportes:'Reportes',usuarios:'Usuarios'};
+  document.getElementById('titulo').innerText=titles[id]||id;
+  document.getElementById('subtitulo').innerText=esCliente
+    ?(id==='ventas'?'Selecciona un producto y confirma tu compra.':'Explora los productos disponibles en La Colmena.')
+    :(id==='resumen'?'Así se mueve tu operación hoy.':'Gestiona '+(titles[id]||id).toLowerCase()+' de tu supermercado.');
   if(btn){document.querySelectorAll('.menu button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
 }
 async function cargarTodo(){
-  let res=await fetch('/api/resumen').then(r=>r.json());
+  if(usuarioActual&&usuarioActual.rol==='Cliente'){
+    await cargarCatalogoCliente();
+    return;
+  }
+  let res=await apiJson('/api/resumen');
   document.getElementById('rVentas').innerText='$'+res.ventas_total.toLocaleString('es-CO');
   document.getElementById('rVentasN').innerText=res.ventas_n+' ventas';
   document.getElementById('rStock').innerText=res.stock;
@@ -312,38 +987,122 @@ async function cargarTodo(){
   document.getElementById('bajoCount').innerText=res.bajo_stock.length+' productos con stock bajo';
   document.getElementById('bajoList').innerHTML=res.bajo_stock.map(p=>`<p class="alerta">⚠️ ${p.nombre} — ${p.stock} disponibles · mínimo ${p.minimo}</p>`).join('')||'<p>✅ Sin alertas</p>';
 
-  productos=await fetch('/api/productos').then(r=>r.json());
+  productos=await apiJson('/api/productos');
   document.getElementById('listaProductos').innerHTML=`<table><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th></tr>${productos.map(p=>`<tr><td><b>${p.nombre}</b></td><td>${p.categoria}</td><td>$${p.precio.toLocaleString()}</td><td>${p.stock}</td></tr>`).join('')}</table>`;
-  document.getElementById('listaInventario').innerHTML=productos.map(p=>`<div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid #eee"><b style="flex:1">${p.nombre}</b><input type="number" value="${p.stock}" id="stock-${p.id}" style="width:90px"><button class="btn2" onclick="ajustar(${p.id})">Guardar</button></div>`).join('');
+  if(usuarioActual.rol==='Administradora'){
+    document.getElementById('listaInventario').innerHTML=productos.map(p=>`<div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid #eee"><b style="flex:1">${p.nombre}</b><input type="number" value="${p.stock}" id="stock-${p.id}" style="width:90px"><button class="btn2" onclick="ajustar(${p.id})">Guardar</button></div>`).join('');
+  }else{
+    document.getElementById('listaInventario').innerText='Solo el administrador puede actualizar el stock.';
+  }
   document.getElementById('vProducto').innerHTML=productos.map(p=>`<option value="${p.id}">${p.nombre} — $${p.precio} (stock ${p.stock})</option>`).join('');
 
-  let ventas=await fetch('/api/ventas').then(r=>r.json());
+  let ventas=await apiJson('/api/ventas');
   let htmlVentas=ventas.map(v=>`<tr><td><b>#V-${v.id}</b></td><td>${v.cliente}</td><td><span class="badge ${v.estado=='Pagada'?'ok':'warn'}">${v.estado}</span></td><td style="text-align:right"><b>$${v.total.toLocaleString()}</b></td></tr>`).join('');
   document.getElementById('listaVentas').innerHTML=`<table><tr><th>Venta</th><th>Cliente</th><th>Estado</th><th>Total</th></tr>${htmlVentas}</table>`;
   document.getElementById('ventasResumen').innerHTML=`<table><tr><th>Venta</th><th>Cliente</th><th>Total</th></tr>${ventas.slice(0,3).map(v=>`<tr><td>#V-${v.id}</td><td>${v.cliente}</td><td>$${v.total.toLocaleString()}</td></tr>`).join('')}</table>`;
 
-  let pedidos=await fetch('/api/pedidos').then(r=>r.json());
+  let pedidos=await apiJson('/api/pedidos');
   document.getElementById('listaPedidos').innerHTML=`<table><tr><th>Proveedor</th><th>Producto</th><th>Cant</th><th>Estado</th></tr>${pedidos.map(p=>`<tr><td>${p.proveedor}</td><td>${p.producto}</td><td>${p.cantidad}</td><td><span class="badge warn">${p.estado}</span></td></tr>`).join('')}</table>`;
 
-  let usuarios=await fetch('/api/usuarios').then(r=>r.json());
-  document.getElementById('listaUsuarios').innerHTML=`<table><tr><th>Nombre</th><th>Email</th><th>Rol</th></tr>${usuarios.map(u=>`<tr><td><b>${u.nombre}</b></td><td>${u.email}</td><td>${u.rol}</td></tr>`).join('')}</table>`;
+  if(usuarioActual.rol==='Administradora')await cargarUsuarios();
 
   let totalInv=productos.reduce((a,p)=>a+p.precio*p.stock,0);
   document.getElementById('repTabla').innerHTML=productos.map(p=>`<tr><td>${p.nombre}</td><td>$${p.precio.toLocaleString()}</td><td>${p.stock}</td><td>$${(p.precio*p.stock).toLocaleString()}</td></tr>`).join('');
   document.getElementById('repTotal').innerText='Valor total del inventario: $'+totalInv.toLocaleString('es-CO');
   document.getElementById('repTexto').innerText=`Tienes ${productos.length} productos y ${res.stock} unidades en total.`;
 }
+async function cargarCatalogoCliente(){
+  productos=await apiJson('/api/productos');
+  const table=document.createElement('table');
+  table.innerHTML='<thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th></tr></thead>';
+  const body=document.createElement('tbody');
+  productos.forEach(producto=>{
+    const row=document.createElement('tr');
+    [producto.nombre,producto.categoria,'$'+producto.precio.toLocaleString('es-CO')].forEach(value=>{
+      const cell=document.createElement('td');
+      cell.textContent=value;
+      row.appendChild(cell);
+    });
+    body.appendChild(row);
+  });
+  table.appendChild(body);
+  document.getElementById('listaProductos').replaceChildren(table);
+  const select=document.getElementById('vProducto');
+  select.replaceChildren();
+  productos.forEach(producto=>{
+    const option=document.createElement('option');
+    option.value=producto.id;
+    option.textContent=producto.nombre+' — $'+producto.precio.toLocaleString('es-CO');
+    select.appendChild(option);
+  });
+}
+async function cargarUsuarios(){
+  const users=await apiJson('/api/usuarios');
+  const table=document.createElement('table');
+  const header=document.createElement('tr');
+  ['Nombre','Correo','Rol','Acciones'].forEach(text=>{
+    const cell=document.createElement('th');
+    cell.textContent=text;
+    header.appendChild(cell);
+  });
+  table.appendChild(header);
+  users.forEach(user=>{
+    const row=document.createElement('tr');
+    [user.nombre,user.email,user.rol].forEach(text=>{
+      const cell=document.createElement('td');
+      cell.textContent=text;
+      row.appendChild(cell);
+    });
+    const actions=document.createElement('td');
+    const remove=document.createElement('button');
+    remove.className='btn2';
+    remove.textContent=user.email===usuarioActual.email?'Tu cuenta':'Eliminar';
+    remove.disabled=user.email===usuarioActual.email;
+    remove.addEventListener('click',()=>eliminarUsuario(user.id));
+    actions.appendChild(remove);
+    row.appendChild(actions);
+    table.appendChild(row);
+  });
+  document.getElementById('listaUsuarios').replaceChildren(table);
+}
+document.getElementById('userForm').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const message=document.getElementById('userMessage');
+  const form=event.currentTarget;
+  const newUser={
+    nombre:document.getElementById('newUserName').value,
+    email:document.getElementById('newUserEmail').value,
+    password:document.getElementById('newUserPassword').value,
+    rol:document.getElementById('newUserRole').value
+  };
+  try{
+    const result=await apiJson('/api/usuarios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(newUser)});
+    message.innerText=result.mensaje;
+    form.reset();
+    await cargarUsuarios();
+  }catch(error){message.innerText=error.message;}
+});
+async function eliminarUsuario(id){
+  if(!confirm('¿Eliminar esta cuenta? El usuario perderá el acceso inmediatamente.'))return;
+  try{
+    await apiJson('/api/usuarios/'+encodeURIComponent(id),{method:'DELETE'});
+    await cargarUsuarios();
+  }catch(error){alert(error.message);}
+}
 async function ajustar(id){
   let stock=document.getElementById('stock-'+id).value;
-  await fetch('/api/productos/ajustar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,stock:parseInt(stock)})});
-  alert('Stock guardado en DB ✅'); cargarTodo();
+  try{
+    await apiJson('/api/productos/ajustar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,stock:parseInt(stock)})});
+    alert('Stock guardado en DB ✅'); cargarTodo();
+  }catch(e){alert(e.message);}
 }
 async function registrarVenta(){
-  let r=await fetch('/api/ventas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cliente:document.getElementById('vCliente').value,producto_id:parseInt(document.getElementById('vProducto').value),cantidad:parseInt(document.getElementById('vCant').value)})});
-  let d=await r.json();
-  if(!d.ok){document.getElementById('ventaMsg').innerText='❌ '+d.error;return;}
-  document.getElementById('ventaMsg').innerText='✅ Venta registrada por $'+d.total.toLocaleString()+' y descontada del inventario';
-  cargarTodo();
+  try{
+    let d=await apiJson('/api/ventas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cliente:document.getElementById('vCliente').value,producto_id:parseInt(document.getElementById('vProducto').value),cantidad:parseInt(document.getElementById('vCant').value)})});
+    const esCliente=usuarioActual.rol==='Cliente';
+    document.getElementById('ventaMsg').innerText=(esCliente?'✅ Compra realizada por $':'✅ Venta registrada por $')+d.total.toLocaleString('es-CO')+(esCliente?'':' y descontada del inventario');
+    await cargarTodo();
+  }catch(e){document.getElementById('ventaMsg').innerText='❌ '+e.message;}
 }
     </script>
 </body>

@@ -11,6 +11,14 @@ import json
 import sys
 import time
 
+
+def _safe_console_text(value: str) -> str:
+    encoding = getattr(sys.stdout, "encoding", None)
+    if not encoding:
+        return value
+    return value.encode(encoding, errors="backslashreplace").decode(encoding)
+
+
 class StructuredJSONFormatter(logging.Formatter):
     """
     Formateador para emisión de logs en formato JSON estructurado,
@@ -39,7 +47,7 @@ class StructuredJSONFormatter(logging.Formatter):
         if record.exc_info:
             log_entry["exception"] = self.formatException(record.exc_info)
 
-        return json.dumps(log_entry, ensure_ascii=False)
+        return _safe_console_text(json.dumps(log_entry, ensure_ascii=False))
 
 
 class ColoredConsoleFormatter(logging.Formatter):
@@ -63,7 +71,7 @@ class ColoredConsoleFormatter(logging.Formatter):
         msg = record.getMessage()
         if record.exc_info:
             msg += "\n" + self.formatException(record.exc_info)
-        return f"{color}{prefix}{self.RESET} {msg}"
+        return _safe_console_text(f"{color}{prefix}{self.RESET} {msg}")
 
 
 def get_logger(name: str, level: int = logging.INFO, use_json: bool = False) -> logging.Logger:
