@@ -708,6 +708,717 @@
                 transition: none
             }
         }
+
+        :root {
+            --primary: #2563EB;
+            --primary-dark: #1D4ED8;
+            --success: #10B981;
+            --danger: #EF4444;
+            --text: #1E293B;
+            --muted: #64748B;
+            --white: #FFFFFF;
+            --canvas: #F1F5F9;
+            --border: #E2E8F0;
+            --primary-soft: #EFF6FF;
+            --success-soft: #D1FAE5;
+            --shadow: 0 12px 30px rgba(30, 41, 59, .07)
+        }
+
+        body {
+            background: var(--canvas);
+            color: var(--text)
+        }
+
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, var(--primary), var(--primary-dark));
+            box-shadow: 8px 0 28px rgba(30, 64, 175, .14)
+        }
+
+        .sidebar small {
+            color: rgba(255, 255, 255, .76)
+        }
+
+        .menu {
+            gap: 7px
+        }
+
+        .menu button {
+            border-radius: 10px;
+            color: rgba(255, 255, 255, .84);
+            transition: background .18s, color .18s, transform .18s
+        }
+
+        .menu button.active,
+        .menu button:hover {
+            background: var(--white);
+            color: var(--primary-dark);
+            transform: translateX(2px)
+        }
+
+        .menu button:focus-visible,
+        .logout-button:focus-visible,
+        .btn:focus-visible,
+        .btn2:focus-visible,
+        .login-submit:focus-visible,
+        .login-password-toggle:focus-visible {
+            outline: 3px solid rgba(16, 185, 129, .55);
+            outline-offset: 2px
+        }
+
+        .user {
+            border-top-color: rgba(255, 255, 255, .24)
+        }
+
+        .logout-button {
+            margin-top: 8px;
+            padding: 6px 0;
+            border: 0;
+            background: transparent;
+            color: rgba(255, 255, 255, .84);
+            cursor: pointer;
+            font-size: 13px;
+            transition: color .18s, transform .18s
+        }
+
+        .logout-button:hover {
+            color: var(--white);
+            transform: translateX(2px)
+        }
+
+        .main {
+            min-height: 100vh;
+            margin-left: 260px;
+            padding: 30px
+        }
+
+        .top {
+            gap: 16px;
+            margin-bottom: 22px;
+            padding: 20px 24px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--white);
+            box-shadow: var(--shadow)
+        }
+
+        .top h1 {
+            color: var(--text);
+            font-size: 26px;
+            letter-spacing: -.6px
+        }
+
+        .top p,
+        .summary-note {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 14px
+        }
+
+        .connection-status {
+            flex: 0 0 auto;
+            padding: 8px 12px;
+            border: 1px solid #A7F3D0;
+            border-radius: 999px;
+            background: var(--success-soft);
+            color: #047857;
+            font-size: 12px;
+            font-weight: 700
+        }
+
+        .cards {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin: 0 0 18px
+        }
+
+        .card,
+        .box {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--white);
+            box-shadow: var(--shadow)
+        }
+
+        .card {
+            min-width: 0;
+            padding: 20px;
+            transition: transform .18s, box-shadow .18s
+        }
+
+        .card:hover {
+            box-shadow: 0 16px 34px rgba(30, 41, 59, .11);
+            transform: translateY(-2px)
+        }
+
+        .card small {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .card h3 {
+            color: var(--text);
+            font-size: 29px
+        }
+
+        .box {
+            min-width: 0;
+            margin-bottom: 16px;
+            padding: 20px;
+            overflow-x: auto;
+            transition: border-color .18s, box-shadow .18s
+        }
+
+        .box:hover {
+            border-color: #CBD5E1;
+            box-shadow: 0 14px 32px rgba(30, 41, 59, .09)
+        }
+
+        .box h3 {
+            margin-bottom: 12px;
+            color: var(--text);
+            font-size: 17px
+        }
+
+        .grid2 {
+            gap: 16px
+        }
+
+        table {
+            color: var(--text)
+        }
+
+        th {
+            background: var(--primary-soft);
+            color: #1E40AF;
+            font-size: 12px;
+            font-weight: 700
+        }
+
+        td {
+            border-top-color: var(--border)
+        }
+
+        tbody tr:hover {
+            background: #F8FAFC
+        }
+
+        input,
+        select {
+            border-color: #CBD5E1;
+            background: var(--white);
+            color: var(--text);
+            transition: border-color .18s, box-shadow .18s
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .14)
+        }
+
+        input:hover,
+        select:hover {
+            border-color: #93C5FD
+        }
+
+        button.btn,
+        .login-submit {
+            background: var(--primary);
+            box-shadow: 0 8px 18px rgba(37, 99, 235, .2);
+            color: var(--white);
+            transition: background .18s, box-shadow .18s, transform .18s
+        }
+
+        button.btn:hover:not(:disabled),
+        .login-submit:hover:not(:disabled) {
+            background: var(--primary-dark);
+            box-shadow: 0 11px 22px rgba(37, 99, 235, .27);
+            transform: translateY(-1px)
+        }
+
+        button.btn2 {
+            border: 1px solid #BFDBFE;
+            background: var(--primary-soft);
+            color: var(--primary-dark);
+            font-weight: 700;
+            transition: background .18s, border-color .18s
+        }
+
+        button.btn2:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: #DBEAFE
+        }
+
+        button.btn2:disabled {
+            cursor: not-allowed;
+            opacity: .58
+        }
+
+        button.btn:active:not(:disabled),
+        button.btn2:active:not(:disabled),
+        .login-submit:active:not(:disabled) {
+            transform: scale(.98)
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center
+        }
+
+        .badge.ok {
+            background: var(--success-soft);
+            color: #047857
+        }
+
+        .badge.warn {
+            background: var(--primary-soft);
+            color: var(--primary-dark)
+        }
+
+        .alerta {
+            color: var(--danger);
+            font-size: 13px
+        }
+
+        .inventory-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+            border-top: 1px solid var(--border);
+            transition: background .18s, padding .18s
+        }
+
+        .inventory-row:hover {
+            padding-right: 8px;
+            padding-left: 8px;
+            background: var(--primary-soft)
+        }
+
+        .inventory-row strong {
+            flex: 1
+        }
+
+        .inventory-row input {
+            width: 96px;
+            margin: 0
+        }
+
+        #login {
+            background:
+                radial-gradient(ellipse at 12% 18%, rgba(37, 99, 235, .13), transparent 34%),
+                radial-gradient(ellipse at 92% 84%, rgba(16, 185, 129, .12), transparent 36%),
+                #F8FAFC
+        }
+
+        .loginbox {
+            border-color: var(--border);
+            box-shadow: 0 28px 80px rgba(30, 41, 59, .16)
+        }
+
+        .login-brand-panel {
+            color: var(--white);
+            background:
+                radial-gradient(circle at 88% 15%, rgba(255, 255, 255, .2), transparent 29%),
+                radial-gradient(circle at 8% 92%, rgba(16, 185, 129, .26), transparent 36%),
+                linear-gradient(145deg, var(--primary), #1E40AF)
+        }
+
+        .login-brand-panel::after {
+            border-color: rgba(255, 255, 255, .17);
+            box-shadow: 0 0 0 28px rgba(255, 255, 255, .035), 0 0 0 58px rgba(255, 255, 255, .025)
+        }
+
+        .login-brand,
+        .login-brand-copy h1 {
+            color: var(--white)
+        }
+
+        .login-brand small,
+        .login-brand-footer {
+            color: rgba(255, 255, 255, .78)
+        }
+
+        .login-brand-mark {
+            border-color: rgba(255, 255, 255, .34);
+            background: rgba(255, 255, 255, .16)
+        }
+
+        .login-brand-panel .login-eyebrow {
+            color: #DBEAFE
+        }
+
+        .login-brand-panel .login-eyebrow::before {
+            background: var(--success);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, .2)
+        }
+
+        .login-brand-copy h1 span {
+            color: #D1FAE5
+        }
+
+        .login-brand-copy p {
+            color: rgba(255, 255, 255, .84)
+        }
+
+        .hive-cells path {
+            fill: rgba(255, 255, 255, .12);
+            stroke: rgba(255, 255, 255, .32)
+        }
+
+        @keyframes hive-pulse {
+            0%, 100% { fill: rgba(255, 255, 255, .1) }
+            50% { fill: rgba(255, 255, 255, .28) }
+        }
+
+        .login-feature {
+            border-color: rgba(255, 255, 255, .24);
+            background: rgba(255, 255, 255, .13);
+            transition: transform .18s, background .18s, border-color .18s
+        }
+
+        .login-feature:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, .48);
+            background: rgba(255, 255, 255, .22)
+        }
+
+        .login-feature strong {
+            color: var(--white)
+        }
+
+        .login-form-heading .login-eyebrow {
+            color: var(--primary)
+        }
+
+        .login-form-heading .login-eyebrow::before {
+            background: var(--success);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, .15)
+        }
+
+        .login-form-heading h2 {
+            color: var(--text)
+        }
+
+        .login-form-heading p,
+        .login-secure-note {
+            color: var(--muted)
+        }
+
+        .login-form label {
+            color: var(--text)
+        }
+
+        .login-input-wrap input {
+            border-color: var(--border);
+            background: #F8FAFC;
+            color: var(--text)
+        }
+
+        .login-input-wrap input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, .14)
+        }
+
+        .login-input-wrap input::placeholder,
+        .login-field-icon,
+        .login-password-toggle {
+            color: var(--muted)
+        }
+
+        .login-password-toggle:hover {
+            background: var(--primary-soft);
+            color: var(--primary)
+        }
+
+        .login-error {
+            color: var(--danger)
+        }
+
+        .login-secure-note svg {
+            color: var(--success)
+        }
+
+        .login-mobile-brand {
+            color: var(--text)
+        }
+
+        .login-mobile-brand span:first-child {
+            background: var(--primary-soft)
+        }
+
+        .login-mobile-brand small {
+            color: var(--muted)
+        }
+
+        @media(max-width:800px) {
+            .sidebar {
+                position: relative;
+                width: auto;
+                padding: 18px
+            }
+
+            .menu {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                margin-top: 18px
+            }
+
+            .user {
+                margin-top: 16px
+            }
+
+            .main {
+                margin: 0;
+                padding: 18px
+            }
+
+            .cards,
+            .grid2 {
+                grid-template-columns: 1fr
+            }
+
+            .top {
+                align-items: flex-start;
+                flex-direction: column
+            }
+        }
+
+        @media(max-width:480px) {
+            .main {
+                padding: 12px
+            }
+
+            .top,
+            .box {
+                padding: 16px
+            }
+
+            .top h1 {
+                font-size: 23px
+            }
+
+            .menu {
+                gap: 5px
+            }
+
+            .menu button {
+                padding: 10px 8px;
+                font-size: 13px
+            }
+
+            .inventory-row {
+                flex-wrap: wrap
+            }
+        }
+
+        @media(prefers-reduced-motion: reduce) {
+            .menu button,
+            .logout-button,
+            .card,
+            .box,
+            button.btn,
+            button.btn2,
+            .login-submit,
+            .login-feature,
+            .inventory-row,
+            input,
+            select {
+                transition: none
+            }
+
+            .card:hover,
+            .logout-button:hover,
+            button.btn:active:not(:disabled),
+            button.btn2:active:not(:disabled),
+            .login-submit:active:not(:disabled),
+            .login-feature:hover {
+                transform: none
+            }
+        }
+
+        #dashboard {
+            --dashboard-bg: var(--canvas);
+            --dashboard-surface: var(--white);
+            --dashboard-text: var(--text);
+            --dashboard-muted: var(--muted);
+            --dashboard-border: var(--border);
+            --dashboard-row-hover: #F8FAFC;
+            --dashboard-field-bg: var(--white);
+            --dashboard-success-bg: var(--success-soft);
+            --dashboard-success-text: #047857;
+            --dashboard-info-bg: var(--primary-soft);
+            --dashboard-info-text: var(--primary-dark);
+            --dashboard-danger-text: var(--danger);
+            min-height: 100vh;
+            background: var(--dashboard-bg);
+            color: var(--dashboard-text)
+        }
+
+        #dashboard[data-theme="dark"] {
+            --dashboard-bg: #0F172A;
+            --dashboard-surface: #1E293B;
+            --dashboard-text: #E2E8F0;
+            --dashboard-muted: #94A3B8;
+            --dashboard-border: #334155;
+            --dashboard-row-hover: #263449;
+            --dashboard-field-bg: #0F172A;
+            --dashboard-success-bg: #064E3B;
+            --dashboard-success-text: #6EE7B7;
+            --dashboard-info-bg: #1E3A8A;
+            --dashboard-info-text: #BFDBFE;
+            --dashboard-danger-text: #FCA5A5;
+            --text: #E2E8F0;
+            --muted: #94A3B8;
+            --border: #334155;
+            --primary-soft: #1E3A8A;
+            --success-soft: #064E3B;
+            --shadow: 0 12px 30px rgba(0, 0, 0, .2)
+        }
+
+        #dashboard .main {
+            background: var(--dashboard-bg);
+            color: var(--dashboard-text)
+        }
+
+        #dashboard .top,
+        #dashboard .card,
+        #dashboard .box {
+            border-color: var(--dashboard-border);
+            background: var(--dashboard-surface);
+            color: var(--dashboard-text);
+            box-shadow: var(--shadow)
+        }
+
+        #dashboard .top h1,
+        #dashboard .card h3,
+        #dashboard .box h3 {
+            color: var(--dashboard-text)
+        }
+
+        #dashboard .top p,
+        #dashboard .summary-note,
+        #dashboard .card small {
+            color: var(--dashboard-muted)
+        }
+
+        #dashboard .connection-status {
+            border-color: var(--dashboard-border);
+            background: var(--dashboard-success-bg);
+            color: var(--dashboard-success-text)
+        }
+
+        #dashboard th {
+            background: var(--dashboard-info-bg);
+            color: var(--dashboard-info-text)
+        }
+
+        #dashboard td {
+            border-top-color: var(--dashboard-border);
+            color: var(--dashboard-text)
+        }
+
+        #dashboard tbody tr:hover,
+        #dashboard .inventory-row:hover {
+            background: var(--dashboard-row-hover)
+        }
+
+        #dashboard input,
+        #dashboard select {
+            border-color: var(--dashboard-border);
+            background: var(--dashboard-field-bg);
+            color: var(--dashboard-text)
+        }
+
+        #dashboard input::placeholder {
+            color: var(--dashboard-muted)
+        }
+
+        #dashboard .badge.ok {
+            background: var(--dashboard-success-bg);
+            color: var(--dashboard-success-text)
+        }
+
+        #dashboard .badge.warn {
+            background: var(--dashboard-info-bg);
+            color: var(--dashboard-info-text)
+        }
+
+        #dashboard .alerta {
+            color: var(--dashboard-danger-text)
+        }
+
+        #dashboard button.btn2 {
+            border-color: var(--dashboard-border);
+            background: var(--dashboard-info-bg);
+            color: var(--dashboard-info-text)
+        }
+
+        #dashboard button.btn2:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: var(--primary-dark);
+            color: var(--white)
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .theme-toggle {
+            display: inline-flex;
+            min-height: 38px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 1px solid var(--dashboard-border);
+            border-radius: 10px;
+            background: var(--dashboard-surface);
+            color: var(--dashboard-text);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            transition: background .18s, border-color .18s, color .18s, transform .18s
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--primary);
+            background: var(--dashboard-info-bg);
+            color: var(--dashboard-info-text);
+            transform: translateY(-1px)
+        }
+
+        .theme-toggle:focus-visible {
+            outline: 3px solid rgba(16, 185, 129, .55);
+            outline-offset: 2px
+        }
+
+        #dashboard[data-theme="dark"] .theme-toggle:hover {
+            background: var(--primary-dark);
+            color: var(--white)
+        }
+
+        @media(max-width:800px) {
+            .top-actions {
+                width: 100%;
+                justify-content: space-between;
+                flex-wrap: wrap
+            }
+        }
+
+        @media(prefers-reduced-motion: reduce) {
+            .theme-toggle {
+                transition: none
+            }
+
+            .theme-toggle:hover {
+                transform: none
+            }
+        }
     </style>
 </head>
 <body>
@@ -800,6 +1511,7 @@
         </div>
     </div>
 
+    <div id="dashboard" data-theme="light">
     <aside class="sidebar">
         <h2>🐝 La Colmena</h2><small>Gestión comercial</small>
         <div class="menu">
@@ -811,11 +1523,11 @@
             <button data-section="reportes" data-roles="Administradora,Vendedor" onclick="show('reportes',this)">📈 Reportes</button>
             <button data-section="usuarios" data-roles="Administradora" onclick="show('usuarios',this)">👥 Usuarios</button>
         </div>
-        <div class="user"><b id="userName">Ana Martínez</b><small id="userRol">Administradora</small><br><button onclick="cerrarSesion()" style="background:none;border:0;color:#aaa;cursor:pointer;margin-top:8px">← Cerrar sesión</button></div>
+        <div class="user"><b id="userName">Ana Martínez</b><small id="userRol">Administradora</small><br><button class="logout-button" onclick="cerrarSesion()">← Cerrar sesión</button></div>
     </aside>
 
     <main class="main">
-        <div class="top"><div><h1 id="titulo">Resumen</h1><p id="subtitulo" style="color:#666">Así se mueve tu operación hoy.</p></div><span style="background:#eee;padding:6px 10px;border-radius:20px;font-size:12px">✅ Conectado a DB real</span></div>
+        <div class="top"><div><h1 id="titulo">Resumen</h1><p id="subtitulo">Así se mueve tu operación hoy.</p></div><div class="top-actions"><button id="themeToggle" class="theme-toggle" type="button" aria-label="Cambiar al tema oscuro" aria-pressed="false"><span id="themeIcon" aria-hidden="true">🌙</span><span id="themeLabel">Tema oscuro</span></button><span class="connection-status">● Conectado a DB real</span></div></div>
 
         <!-- RESUMEN -->
         <div id="sec-resumen">
@@ -825,7 +1537,7 @@
                 <div class="card"><small>Pedidos abiertos</small><h3 id="rPedidos">0</h3><span class="badge warn">Por recibir</span></div>
             </div>
             <div class="grid2">
-                <div class="box"><h3>⚠️ Atención requerida</h3><p style="color:#666;font-size:13px;margin:4px 0 10px" id="bajoCount"></p><div id="bajoList"></div></div>
+                <div class="box"><h3>⚠️ Atención requerida</h3><p class="summary-note" id="bajoCount"></p><div id="bajoList"></div></div>
                 <div class="box"><h3>🛒 Ventas recientes</h3><div id="ventasResumen"></div></div>
             </div>
             <div class="box"><h3>Accesos rápidos</h3><br><button class="btn2" onclick="show('portafolio')">Explorar portafolio →</button> <button id="quickInventoryBtn" class="btn2" onclick="show('inventario')">Revisar inventario →</button> <button class="btn" onclick="show('ventas')">Registrar venta →</button></div>
@@ -833,7 +1545,7 @@
 
         <!-- PORTAFOLIO / INVENTARIO -->
         <div id="sec-portafolio" class="hidden"><div class="box"><h3>Catálogo de productos</h3><div id="listaProductos"></div></div></div>
-        <div id="sec-inventario" class="hidden"><div class="box"><h3>Inventario — Ajustar stock real</h3><p style="color:#666;font-size:13px">Si cambias el stock aquí, queda guardado en LaColmena.db</p><div id="listaInventario"></div></div></div>
+        <div id="sec-inventario" class="hidden"><div class="box"><h3>Inventario — Ajustar stock real</h3><p class="summary-note">Si cambias el stock aquí, queda guardado en LaColmena.db</p><div id="listaInventario"></div></div></div>
 
         <!-- VENTAS -->
         <div id="sec-ventas" class="hidden">
@@ -866,9 +1578,41 @@
         </div>
 
     </main>
+    </div>
     <script>
 let productos=[];
 let usuarioActual=null;
+const dashboard=document.getElementById('dashboard');
+const themeToggle=document.getElementById('themeToggle');
+const themeIcon=document.getElementById('themeIcon');
+const themeLabel=document.getElementById('themeLabel');
+const dashboardThemeKey='lacolmena-dashboard-theme';
+function applyDashboardTheme(theme){
+  const isDark=theme==='dark';
+  dashboard.dataset.theme=isDark?'dark':'light';
+  themeToggle.setAttribute('aria-pressed',String(isDark));
+  themeToggle.setAttribute('aria-label',isDark?'Cambiar al tema claro':'Cambiar al tema oscuro');
+  themeIcon.innerText=isDark?'☀️':'🌙';
+  themeLabel.innerText=isDark?'Tema claro':'Tema oscuro';
+}
+function readDashboardTheme(){
+  try{
+    return localStorage.getItem(dashboardThemeKey)==='dark'?'dark':'light';
+  }catch(error){
+    console.warn('No se pudo leer el tema guardado.',error);
+    return 'light';
+  }
+}
+applyDashboardTheme(readDashboardTheme());
+themeToggle.addEventListener('click',()=>{
+  const nextTheme=dashboard.dataset.theme==='dark'?'light':'dark';
+  applyDashboardTheme(nextTheme);
+  try{
+    localStorage.setItem(dashboardThemeKey,nextTheme);
+  }catch(error){
+    console.warn('No se pudo guardar el tema seleccionado.',error);
+  }
+});
 async function login(){
   const error=document.getElementById('loginError');
   const submit=document.getElementById('loginSubmit');
@@ -990,7 +1734,7 @@ async function cargarTodo(){
   productos=await apiJson('/api/productos');
   document.getElementById('listaProductos').innerHTML=`<table><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th></tr>${productos.map(p=>`<tr><td><b>${p.nombre}</b></td><td>${p.categoria}</td><td>$${p.precio.toLocaleString()}</td><td>${p.stock}</td></tr>`).join('')}</table>`;
   if(usuarioActual.rol==='Administradora'){
-    document.getElementById('listaInventario').innerHTML=productos.map(p=>`<div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid #eee"><b style="flex:1">${p.nombre}</b><input type="number" value="${p.stock}" id="stock-${p.id}" style="width:90px"><button class="btn2" onclick="ajustar(${p.id})">Guardar</button></div>`).join('');
+    document.getElementById('listaInventario').innerHTML=productos.map(p=>`<div class="inventory-row"><strong>${p.nombre}</strong><input type="number" value="${p.stock}" id="stock-${p.id}"><button class="btn2" onclick="ajustar(${p.id})">Guardar</button></div>`).join('');
   }else{
     document.getElementById('listaInventario').innerText='Solo el administrador puede actualizar el stock.';
   }
