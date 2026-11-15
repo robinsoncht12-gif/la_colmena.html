@@ -25,7 +25,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from src.models import Producto, Pedido, ItemPedido, EstadoPedido
+from src.models import Producto, Pedido, ItemPedido, EstadoPedido, EstadoSaga
 from src.validators import Validator, ValidationError
 from src.repositories import SQLiteProductoRepository, SQLitePedidoRepository, SQLiteOutboxRepository
 from src.services import ColmenaService, PasarelaPagosMock, SagaOrquestadorMatriculaPedido
@@ -463,6 +463,68 @@ class TestAutenticacionSegura(unittest.TestCase):
             self.assertEqual(sales_count, 3)
             self.assertEqual(event_count, 0)
 
+    def test_api_ordenes_usa_header_idempotency_key(self):
+        with tempfile.TemporaryDirectory() as test_dir:
+            self._start_test_server(os.path.join(test_dir, "idempotency.db"))
+            status, _, headers = self._request(
+                "POST",
+                "/api/login",
+                {
+                    "email": "demo@lacolmena.co",
+                    "password": "LocalAdminPass2026!",
+                },
+            )
+            self.assertEqual(status, 200)
+            admin_cookie = headers["Set-Cookie"].split(";", 1)[0]
+            body = {
+                "direccion": "Calle 10 # 5-10",
+                "items": [{"codigo": "SUP-001", "cantidad": 2}],
+            }
+
+            status, _, _ = self._request(
+                "POST", "/api/ordenes", body, cookie=admin_cookie
+            )
+            self.assertEqual(status, 400)
+
+            SQLiteProductoRepository(self.db_path)
+            with closing(sqlite3.connect(self.db_path)) as connection:
+                stock_inicial = connection.execute(
+                    "SELECT stock_disponible FROM catalogo_productos "
+                    "WHERE codigo = ?",
+                    ("SUP-001",),
+                ).fetchone()[0]
+
+            key_headers = {"Idempotency-Key": "ORDER-API-001"}
+            status, first, _ = self._request(
+                "POST",
+                "/api/ordenes",
+                body,
+                cookie=admin_cookie,
+                headers=key_headers,
+            )
+            self.assertEqual(status, 200)
+            self.assertTrue(first["ok"])
+            self.assertEqual(first["pedido"]["saga_status"], "CONFIRMED")
+
+            status, retry, _ = self._request(
+                "POST",
+                "/api/ordenes",
+                body,
+                cookie=admin_cookie,
+                headers=key_headers,
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(retry["pedido"]["id"], first["pedido"]["id"])
+            self.assertEqual(retry["pedido"]["saga_status"], "CONFIRMED")
+
+            with closing(sqlite3.connect(self.db_path)) as connection:
+                stock_final = connection.execute(
+                    "SELECT stock_disponible FROM catalogo_productos "
+                    "WHERE codigo = ?",
+                    ("SUP-001",),
+                ).fetchone()[0]
+            self.assertEqual(stock_final, stock_inicial - 2)
+
     def _start_test_server(self, db_path):
         self.db_path = db_path
         self.db_patch = patch.object(app, "DB", db_path)
@@ -482,9 +544,9 @@ class TestAutenticacionSegura(unittest.TestCase):
         self.server_port = self.server.server_address[1]
         self.addCleanup(self._stop_test_server)
 
-    def _request(self, method, path, data=None, cookie=None):
+    def _request(self, method, path, data=None, cookie=None, headers=None):
         connection = HTTPConnection("127.0.0.1", self.server_port, timeout=3)
-        headers = {}
+        headers = dict(headers or {})
         body = None
         if data is not None:
             body = json.dumps(data).encode("utf-8")
@@ -561,6 +623,8 @@ class TestValidacionesNegocio(unittest.TestCase):
         self.assertEqual(Validator.validar_idempotency_key("IDEM-12345678"), "IDEM-12345678")
         with self.assertRaises(ValidationError):
             Validator.validar_idempotency_key("corta")  # Menos de 8 chars
+        with self.assertRaises(ValidationError):
+            Validator.validar_idempotency_key("IDEM WITH SPACE")
 
     def test_items_pedido_validacion(self):
         # Lista vacía
@@ -860,6 +924,7 @@ class TestSagaYLogicaNegocio(unittest.TestCase):
         self.assertTrue(resultado["exito"])
         pedido = resultado["pedido"]
         self.assertEqual(pedido.estado, EstadoPedido.COMPLETADO)
+        self.assertEqual(pedido.estado_saga, EstadoSaga.CONFIRMED)
 
         # Stock descontado: 150 - 3 = 147
         stock_actual = self.prod_repo.buscar_por_codigo("SUP-002").stock_disponible
@@ -893,10 +958,150 @@ class TestSagaYLogicaNegocio(unittest.TestCase):
         self.assertFalse(resultado["exito"])
         pedido = resultado["pedido"]
         self.assertEqual(pedido.estado, EstadoPedido.COMPENSADO)
+        self.assertEqual(pedido.estado_saga, EstadoSaga.COMPENSATED)
 
         # Verificar que el stock fue DEVUELTO intacto por C1
         stock_final = self.prod_repo.buscar_por_codigo("SUP-001").stock_disponible
         self.assertEqual(stock_final, stock_inicial, "El stock debe regresar al valor original tras la compensación C1")
+
+    def test_fallo_posterior_al_pago_reembolsa_y_restaura_stock(self):
+        stock_inicial = self.prod_repo.buscar_por_codigo("SUP-001").stock_disponible
+        guardar_original = self.service.guardar_pedido_y_evento
+
+        def fallar_facturacion(pedido, event_type):
+            if event_type == "bina.la_colmena.pedido.completado":
+                raise RuntimeError("facturación no disponible")
+            return guardar_original(pedido, event_type)
+
+        with patch.object(
+            self.service,
+            "guardar_pedido_y_evento",
+            side_effect=fallar_facturacion,
+        ):
+            resultado = self.saga.ejecutar_saga_pedido(
+                cliente_id="1098765432",
+                cliente_nombre="Prueba de reembolso",
+                direccion="Calle 1",
+                items_req=[{"codigo": "SUP-001", "cantidad": 3}],
+                idempotency_key="IDEM-POST-PAGO-001",
+            )
+
+        self.assertFalse(resultado["exito"])
+        self.assertEqual(
+            resultado["pedido"].estado_saga,
+            EstadoSaga.COMPENSATED,
+        )
+        self.assertEqual(
+            self.prod_repo.buscar_por_codigo("SUP-001").stock_disponible,
+            stock_inicial,
+        )
+        self.assertEqual(
+            list(self.pasarela.reembolsos_procesados),
+            ["REFUND-IDEM-POST-PAGO-001"],
+        )
+
+    def test_maquina_saga_rechaza_transiciones_ilegales(self):
+        pedido = Pedido(
+            id_pedido="PED-STATE-001",
+            cliente_id="1098765432",
+            cliente_nombre="Prueba de estado",
+            cliente_direccion="Calle 1",
+            items=[ItemPedido("SUP-001", 1, 5000.0)],
+        )
+        with self.assertRaises(ValueError):
+            pedido.transicionar_saga_a(EstadoSaga.COMPENSATED, "salto inválido")
+
+    def test_compensacion_pendiente_se_reanuda_y_restaura_stock(self):
+        stock_inicial = self.prod_repo.buscar_por_codigo("SUP-001").stock_disponible
+        guardar_original = self.service.guardar_pedido_y_evento
+
+        def fallar_facturacion(pedido, event_type):
+            if event_type == "bina.la_colmena.pedido.completado":
+                raise RuntimeError("facturación no disponible")
+            return guardar_original(pedido, event_type)
+
+        with patch.object(
+            self.service,
+            "guardar_pedido_y_evento",
+            side_effect=fallar_facturacion,
+        ), patch.object(self.pasarela, "reembolsar", return_value=False):
+            primero = self.saga.ejecutar_saga_pedido(
+                cliente_id="1098765432",
+                cliente_nombre="Prueba de reintento",
+                direccion="Calle 1",
+                items_req=[{"codigo": "SUP-001", "cantidad": 2}],
+                idempotency_key="IDEM-RETRY-COMP-001",
+            )
+
+        self.assertEqual(
+            primero["pedido"].estado_saga,
+            EstadoSaga.COMPENSATING,
+        )
+        self.assertEqual(
+            self.prod_repo.buscar_por_codigo("SUP-001").stock_disponible,
+            stock_inicial - 2,
+        )
+
+        with patch.object(self.pasarela, "reembolsar", return_value=True):
+            segundo = self.saga.ejecutar_saga_pedido(
+                cliente_id="1098765432",
+                cliente_nombre="Prueba de reintento",
+                direccion="Calle 1",
+                items_req=[{"codigo": "SUP-001", "cantidad": 2}],
+                idempotency_key="IDEM-RETRY-COMP-001",
+            )
+
+        self.assertEqual(
+            segundo["pedido"].estado_saga,
+            EstadoSaga.COMPENSATED,
+        )
+        self.assertEqual(
+            self.prod_repo.buscar_por_codigo("SUP-001").stock_disponible,
+            stock_inicial,
+        )
+
+    def test_repositorio_migra_estado_saga_en_ordenes_existentes(self):
+        legacy_path = os.path.join(self.test_dir.name, "legacy_orders.db")
+        with closing(sqlite3.connect(legacy_path)) as connection:
+            connection.execute(
+                """
+                CREATE TABLE ordenes_pedidos (
+                    id_pedido TEXT PRIMARY KEY,
+                    cliente_id TEXT NOT NULL,
+                    cliente_nombre TEXT NOT NULL,
+                    cliente_direccion TEXT NOT NULL,
+                    estado TEXT NOT NULL,
+                    total REAL NOT NULL,
+                    idempotency_key TEXT UNIQUE NOT NULL,
+                    timestamp REAL NOT NULL,
+                    items_json TEXT NOT NULL,
+                    historial_json TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO ordenes_pedidos VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "PED-LEGACY-001",
+                    "1098765432",
+                    "Cliente anterior",
+                    "Calle 1",
+                    EstadoPedido.COMPLETADO.value,
+                    5000,
+                    "IDEM-LEGACY-001",
+                    1.0,
+                    '[{"codigo":"SUP-001","cantidad":1,"precio":5000}]',
+                    "[]",
+                ),
+            )
+            connection.commit()
+
+        repository = SQLitePedidoRepository(legacy_path)
+        migrated = repository.buscar_por_id("PED-LEGACY-001")
+        self.assertIsNotNone(migrated)
+        self.assertEqual(migrated.estado_saga, EstadoSaga.CONFIRMED)
 
     def test_garantia_de_idempotencia(self):
         """Caso 3: Dos peticiones con idéntica idempotency_key deben retornar el mismo pedido sin doble descuento."""

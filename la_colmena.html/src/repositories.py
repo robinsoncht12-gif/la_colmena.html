@@ -12,7 +12,7 @@ import json
 import time
 from contextlib import nullcontext
 from typing import Optional, List, Dict, Any
-from src.models import Producto, Pedido, ItemPedido, EstadoPedido
+from src.models import Producto, Pedido, ItemPedido, EstadoPedido, EstadoSaga
 from src.interfaces import IProductoRepository, IPedidoRepository, IOutboxRepository
 from src.logger import get_logger
 from src.database import DB_PATH, database_connection
@@ -161,9 +161,33 @@ class SQLitePedidoRepository(IPedidoRepository):
                     idempotency_key TEXT UNIQUE NOT NULL,
                     timestamp REAL NOT NULL,
                     items_json TEXT NOT NULL,
-                    historial_json TEXT NOT NULL
+                    historial_json TEXT NOT NULL,
+                    saga_status TEXT NOT NULL DEFAULT 'PENDING'
                 )
             """)
+            columns = {
+                row[1] for row in cursor.execute(
+                    "PRAGMA table_info(ordenes_pedidos)"
+                )
+            }
+            if "saga_status" not in columns:
+                cursor.execute(
+                    """
+                    ALTER TABLE ordenes_pedidos
+                    ADD COLUMN saga_status TEXT NOT NULL DEFAULT 'PENDING'
+                    """
+                )
+                cursor.execute(
+                    """
+                    UPDATE ordenes_pedidos
+                    SET saga_status = CASE estado
+                        WHEN 'PAGADO' THEN 'CONFIRMED'
+                        WHEN 'COMPLETADO' THEN 'CONFIRMED'
+                        WHEN 'COMPENSADO' THEN 'COMPENSATED'
+                        ELSE 'PENDING'
+                    END
+                    """
+                )
             conn.commit()
 
     def guardar(
@@ -182,8 +206,8 @@ class SQLitePedidoRepository(IPedidoRepository):
             items_data = [{"codigo": it.producto_codigo, "cantidad": it.cantidad, "precio": it.precio_unitario} for it in pedido.items]
             cursor.execute("""
                 INSERT OR REPLACE INTO ordenes_pedidos
-                (id_pedido, cliente_id, cliente_nombre, cliente_direccion, estado, total, idempotency_key, timestamp, items_json, historial_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id_pedido, cliente_id, cliente_nombre, cliente_direccion, estado, total, idempotency_key, timestamp, items_json, historial_json, saga_status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 pedido.id_pedido,
                 pedido.cliente_id,
@@ -194,7 +218,8 @@ class SQLitePedidoRepository(IPedidoRepository):
                 pedido.idempotency_key,
                 pedido.timestamp,
                 json.dumps(items_data),
-                json.dumps(pedido.historial_estados)
+                json.dumps(pedido.historial_estados),
+                pedido.estado_saga.value,
             ))
             return True
 
@@ -202,7 +227,7 @@ class SQLitePedidoRepository(IPedidoRepository):
         with database_connection(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT id_pedido, cliente_id, cliente_nombre, cliente_direccion, estado, total, idempotency_key, timestamp, items_json, historial_json 
+                SELECT id_pedido, cliente_id, cliente_nombre, cliente_direccion, estado, total, idempotency_key, timestamp, items_json, historial_json, saga_status
                 FROM ordenes_pedidos WHERE id_pedido = ?
             """, (id_pedido,))
             r = cursor.fetchone()
@@ -212,7 +237,8 @@ class SQLitePedidoRepository(IPedidoRepository):
             pedido = Pedido(
                 id_pedido=r[0], cliente_id=r[1], cliente_nombre=r[2], cliente_direccion=r[3],
                 items=items, estado=EstadoPedido(r[4]), total=r[5], idempotency_key=r[6],
-                timestamp=r[7], historial_estados=json.loads(r[9])
+                timestamp=r[7], historial_estados=json.loads(r[9]),
+                estado_saga=EstadoSaga(r[10])
             )
             return pedido
 
@@ -230,7 +256,7 @@ class SQLitePedidoRepository(IPedidoRepository):
         with context as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT id_pedido, cliente_id, cliente_nombre, cliente_direccion, estado, total, idempotency_key, timestamp, items_json, historial_json 
+                SELECT id_pedido, cliente_id, cliente_nombre, cliente_direccion, estado, total, idempotency_key, timestamp, items_json, historial_json, saga_status
                 FROM ordenes_pedidos WHERE idempotency_key = ?
             """, (key,))
             r = cursor.fetchone()
@@ -240,7 +266,8 @@ class SQLitePedidoRepository(IPedidoRepository):
             pedido = Pedido(
                 id_pedido=r[0], cliente_id=r[1], cliente_nombre=r[2], cliente_direccion=r[3],
                 items=items, estado=EstadoPedido(r[4]), total=r[5], idempotency_key=r[6],
-                timestamp=r[7], historial_estados=json.loads(r[9])
+                timestamp=r[7], historial_estados=json.loads(r[9]),
+                estado_saga=EstadoSaga(r[10])
             )
             return pedido
 
@@ -248,7 +275,7 @@ class SQLitePedidoRepository(IPedidoRepository):
         with database_connection(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT id_pedido, cliente_id, cliente_nombre, cliente_direccion, estado, total, idempotency_key, timestamp, items_json, historial_json 
+                SELECT id_pedido, cliente_id, cliente_nombre, cliente_direccion, estado, total, idempotency_key, timestamp, items_json, historial_json, saga_status
                 FROM ordenes_pedidos ORDER BY timestamp DESC
             """)
             filas = cursor.fetchall()
@@ -258,7 +285,8 @@ class SQLitePedidoRepository(IPedidoRepository):
                 p = Pedido(
                     id_pedido=r[0], cliente_id=r[1], cliente_nombre=r[2], cliente_direccion=r[3],
                     items=items, estado=EstadoPedido(r[4]), total=r[5], idempotency_key=r[6],
-                    timestamp=r[7], historial_estados=json.loads(r[9])
+                    timestamp=r[7], historial_estados=json.loads(r[9]),
+                    estado_saga=EstadoSaga(r[10])
                 )
                 pedidos.append(p)
             return pedidos

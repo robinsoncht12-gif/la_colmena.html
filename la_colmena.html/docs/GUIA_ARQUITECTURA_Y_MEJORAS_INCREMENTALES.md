@@ -53,7 +53,7 @@ El servidor levantará en `http://localhost:8086` con:
 | **S3** | **Act2 (25% Seg.)** | **Transactional Outbox y Rate Limiting:** Activar el procesamiento de la `outbox_table` para evitar la Doble Escritura (Dual-Write) y agregar limitación de tasa (Token Bucket) al login. |
 | **S4** | **SEGUNDO PARCIAL (25%)** | **Orquestador Saga y Compensación Inversa:** Implementar la máquina de estados completa ($T_1 \to T_2 \to T_3$), probar la inyección de fallos con compensación ($C_1$) y verificar la Idempotency Key. |
 | **S5** | **Act3 (25% Seg.)** | **Resiliencia (Circuit Breaker y OpenTelemetry):** Proteger la pasarela de pagos con Circuit Breaker (`CLOSED`, `OPEN`, `HALF-OPEN`) e inyectar cabeceras W3C `traceparent`. |
-| **S6** | **EXAMEN FINAL (25%)** | **Evaluación ATAM y Cloud Native:** Sustentación formal de trade-offs arquitectónicos con el método ATAM del SEI y empaquetamiento en `docker-compose.yaml`. |
+| **S6** | **EXAMEN FINAL (25%)** | **Evaluación ATAM y Cloud Native:** Sustentación formal de trade-offs arquitectónicos con el método ATAM del SEI y empaquetamiento en `docker-compose.yml`. |
 
 ## 🔐 5. Login seguro D1
 
@@ -91,3 +91,31 @@ python main.py
 ```
 
 RabbitMQ debe estar disponible antes de procesar eventos; la aplicación puede iniciar sin el broker y conservará los eventos pendientes en SQLite.
+
+## 🔁 7. Saga, compensación e idempotencia D4
+
+### Decisión CAP
+
+El teorema CAP establece que, durante una partición de red, un sistema distribuido no puede garantizar simultáneamente consistencia linealizable y disponibilidad para todas las solicitudes. CAP aplica a los límites distribuidos (por ejemplo, la comunicación con pagos y RabbitMQ), no a SQLite ejecutándose localmente por sí solo. Ante una partición que impida obtener una confirmación fiable de la pasarela, La Colmena prioriza **consistencia (CP)** para el checkout: no declara la orden confirmada ni permite completar el flujo sin confirmar el cobro. La solicitud falla o queda en compensación; se prefiere perder disponibilidad temporal a vender sin stock reservado o registrar un pago incierto como exitoso.
+
+El Outbox conserva disponibilidad para confirmar una transacción local y publicar sus eventos posteriormente, pero esa entrega eventual no equivale a consistencia fuerte entre SQLite, RabbitMQ y la pasarela. En producción, un timeout con resultado de pago desconocido debe reconciliarse consultando la pasarela con la misma clave idempotente antes de liberar inventario.
+
+### Máquina Saga y C1
+
+Cada orden persiste un estado Saga independiente del estado comercial:
+
+- `PENDING` puede avanzar a `CONFIRMED` o `COMPENSATING`.
+- `CONFIRMED` puede avanzar a `COMPENSATING` si falla un paso posterior al cobro.
+- `COMPENSATING` termina en `COMPENSATED` solo después de completar las compensaciones.
+
+Las transiciones no permitidas se rechazan. C1 restaura el stock en una transacción SQLite; si el cobro ya fue confirmado, primero solicita un reembolso con una clave determinista. Si el reembolso falla, la Saga conserva `COMPENSATING` y no devuelve el stock hasta reanudar la compensación.
+
+### Consumidor HTTP e idempotencia
+
+`POST /api/ordenes` requiere una sesión autenticada, una cabecera `Idempotency-Key` (8–120 caracteres), `direccion` y una lista `items` con `codigo` y `cantidad`. La clave se persiste con restricción única en SQLite. Repetirla devuelve la misma orden sin volver a reservar stock ni duplicar el cobro; las claves de cobro y reembolso derivan de esa clave. La respuesta incluye `pedido.id`, `pedido.estado` y `pedido.saga_status`. Los errores de validación responden `400`; una orden compensada o con compensación pendiente responde `409`.
+
+El simulador de pagos conserva sus claves en memoria; una pasarela real debe proporcionar deduplicación durable por clave para proteger también frente a reinicios del proceso.
+
+### Despliegue
+
+El archivo `docker-compose.yml` levanta RabbitMQ con credenciales locales obligatorias. Para iniciarlo, configura `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS` y `LACOLMENA_RABBITMQ_URL` como se muestra en la sección anterior y ejecuta `docker compose up -d rabbitmq`.

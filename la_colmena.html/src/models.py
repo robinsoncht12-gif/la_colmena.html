@@ -32,6 +32,13 @@ class EstadoPedido(Enum):
     COMPENSADO = "COMPENSADO"
 
 
+class EstadoSaga(Enum):
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    COMPENSATING = "COMPENSATING"
+    COMPENSATED = "COMPENSATED"
+
+
 class TipoPago(Enum):
     """Métodos de pago soportados por la pasarela de pagos."""
     TARJETA_CREDITO = "TARJETA_CREDITO"
@@ -91,6 +98,32 @@ class Pedido:
     idempotency_key: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: float = field(default_factory=time.time)
     historial_estados: List[Dict[str, Any]] = field(default_factory=list)
+    estado_saga: EstadoSaga = EstadoSaga.PENDING
+
+    def transicionar_saga_a(self, nuevo_estado: EstadoSaga, motivo: str = ""):
+        transiciones = {
+            EstadoSaga.PENDING: {
+                EstadoSaga.CONFIRMED,
+                EstadoSaga.COMPENSATING,
+            },
+            EstadoSaga.CONFIRMED: {EstadoSaga.COMPENSATING},
+            EstadoSaga.COMPENSATING: {EstadoSaga.COMPENSATED},
+            EstadoSaga.COMPENSATED: set(),
+        }
+        if nuevo_estado == self.estado_saga:
+            return
+        if nuevo_estado not in transiciones[self.estado_saga]:
+            raise ValueError(
+                f"Transición Saga no permitida: {self.estado_saga.value} "
+                f"-> {nuevo_estado.value}"
+            )
+        self.estado_saga = nuevo_estado
+        self.historial_estados.append({
+            "estado_saga": nuevo_estado.value,
+            "motivo": motivo,
+            "timestamp": time.time(),
+            "hora_utc": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+        })
 
     def calcular_total(self) -> float:
         """Recalcula y asigna la suma de subtotales de todos los ítems."""

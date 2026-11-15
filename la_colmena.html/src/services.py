@@ -9,7 +9,7 @@ Dependencias: NINGUNA (Python Standard Library `time`, `json`)
 """
 import time
 import copy
-from src.models import Pedido, ItemPedido, EstadoPedido
+from src.models import Pedido, ItemPedido, EstadoPedido, EstadoSaga
 from src.interfaces import IProductoRepository, IPedidoRepository, IOutboxRepository, IPasarelaPagos
 from src.validators import Validator, ValidationError
 from src.logger import get_logger
@@ -52,6 +52,7 @@ class ColmenaService:
             "order_id": pedido.id_pedido,
             "client_id": pedido.cliente_id,
             "total": pedido.total,
+            "saga_status": pedido.estado_saga.value,
             "items": [
                 {
                     "product_code": item.producto_codigo,
@@ -196,7 +197,20 @@ class ColmenaService:
                 self._datos_pedido(pedido),
             )
 
+    def iniciar_compensacion(self, pedido: Pedido, motivo: str) -> Pedido:
+        if pedido.estado_saga == EstadoSaga.COMPENSATED:
+            return pedido
+        if pedido.estado_saga != EstadoSaga.COMPENSATING:
+            pedido.transicionar_saga_a(EstadoSaga.COMPENSATING, motivo)
+            self.guardar_pedido_y_evento(
+                pedido, "bina.la_colmena.pedido.compensando"
+            )
+        return pedido
+
     def compensar_pedido(self, pedido: Pedido, motivo: str) -> Pedido:
+        pedido = self.iniciar_compensacion(pedido, motivo)
+        if pedido.estado_saga == EstadoSaga.COMPENSATED:
+            return pedido
         pedido_compensado = copy.deepcopy(pedido)
         with database_connection(self.db_path) as connection:
             connection.execute("BEGIN IMMEDIATE")
@@ -228,6 +242,9 @@ class ColmenaService:
             pedido_compensado.transicionar_a(
                 EstadoPedido.COMPENSADO, motivo
             )
+            pedido_compensado.transicionar_saga_a(
+                EstadoSaga.COMPENSATED, motivo
+            )
             self.pedido_repo.guardar(pedido_compensado, connection)
             self._registrar_evento(
                 connection,
@@ -245,6 +262,7 @@ class PasarelaPagosMock(IPasarelaPagos):
     """
     def __init__(self):
         self.cobros_procesados = {}
+        self.reembolsos_procesados = {}
 
     def procesar_cobro(self, id_pedido: str, monto: float, idempotency_key: str, simular_falla: bool = False) -> bool:
         # Validación de monto positivo
@@ -263,8 +281,16 @@ class PasarelaPagosMock(IPasarelaPagos):
         self.cobros_procesados[idempotency_key] = {"exito": True, "monto": monto, "motivo": "Aprobado"}
         return True
 
-    def reembolsar(self, id_pedido: str, monto: float) -> bool:
+    def reembolsar(
+        self,
+        id_pedido: str,
+        monto: float,
+        idempotency_key: str,
+    ) -> bool:
+        if idempotency_key in self.reembolsos_procesados:
+            return self.reembolsos_procesados[idempotency_key]
         logger.info(f"↩️ [Pasarela] Reembolso procesado para pedido {id_pedido} por ${monto:,.2f}")
+        self.reembolsos_procesados[idempotency_key] = True
         return True
 
 
@@ -276,11 +302,38 @@ class SagaOrquestadorMatriculaPedido:
       - T1: Inventario / Pedido (Acción Compensable)
       - T2: Pasarela de Pagos (Punto de Decisión Pivot)
       - T3: Facturación y Despacho (Acción Retriable)
-      - C1: Compensación Inversa (Devolución de stock en reversa si T2 falla)
+      - C1: Compensación Inversa de inventario
+      - C2: Reembolso idempotente si el cobro ya fue confirmado
     """
     def __init__(self, Colmena_service: ColmenaService, pasarela: PasarelaPagosMock):
         self.Colmena_service = Colmena_service
         self.pasarela = pasarela
+
+    def _compensar(
+        self,
+        pedido: Pedido,
+        motivo: str,
+        log_saga: list,
+    ) -> Pedido:
+        pedido = self.Colmena_service.iniciar_compensacion(pedido, motivo)
+        if pedido.estado in (EstadoPedido.PAGADO, EstadoPedido.COMPLETADO):
+            refund_key = f"REFUND-{pedido.idempotency_key}"
+            if not self.pasarela.reembolsar(
+                pedido.id_pedido, pedido.total, refund_key
+            ):
+                raise RuntimeError(
+                    "La pasarela no confirmó el reembolso; Saga en COMPENSATING."
+                )
+            log_saga.append(
+                f"C2 [Compensación de pago]: Reembolso confirmado para "
+                f"{pedido.id_pedido}."
+            )
+        pedido = self.Colmena_service.compensar_pedido(pedido, motivo)
+        log_saga.append(
+            "C1 [Compensación de inventario]: Stock restaurado; "
+            "estado Saga COMPENSATED."
+        )
+        return pedido
 
     def ejecutar_saga_pedido(self, 
                              cliente_id: str, 
@@ -306,29 +359,58 @@ class SagaOrquestadorMatriculaPedido:
             log_saga.append(msg_t1)
             logger.info(msg_t1)
 
-            # Si el pedido ya estaba completado o compensado previamente por idempotencia
-            if pedido.estado in [EstadoPedido.COMPLETADO, EstadoPedido.COMPENSADO]:
+            if pedido.estado_saga == EstadoSaga.COMPENSATING:
+                pedido = self._compensar(
+                    pedido,
+                    "Reanudación de compensación pendiente",
+                    log_saga,
+                )
+                return {"exito": False, "pedido": pedido, "log": log_saga}
+            if (
+                pedido.estado_saga == EstadoSaga.COMPENSATED
+                or pedido.estado == EstadoPedido.COMPENSADO
+            ):
+                log_saga.append(
+                    f"ℹ️ [Idempotencia]: Pedido ya compensado "
+                    f"({pedido.estado_saga.value})."
+                )
+                return {"exito": False, "pedido": pedido, "log": log_saga}
+            if pedido.estado == EstadoPedido.COMPLETADO:
                 log_saga.append(f"ℹ️ [Idempotencia]: Pedido ya procesado previamente con estado {pedido.estado.value}.")
-                return {"exito": pedido.estado == EstadoPedido.COMPLETADO, "pedido": pedido, "log": log_saga}
+                return {"exito": True, "pedido": pedido, "log": log_saga}
 
             # =========================================================================
             # PASO T2: Cobro Financiero en Pasarela Externa (Pivot Transaction)
             # =========================================================================
-            pay_key = f"PAY-{idempotency_key}"
-            pago_ok = self.pasarela.procesar_cobro(
-                pedido.id_pedido, pedido.total, pay_key, simular_falla=simular_falla_pago
-            )
+            if pedido.estado != EstadoPedido.PAGADO:
+                pay_key = f"PAY-{idempotency_key}"
+                pago_ok = self.pasarela.procesar_cobro(
+                    pedido.id_pedido,
+                    pedido.total,
+                    pay_key,
+                    simular_falla=simular_falla_pago,
+                )
 
-            if not pago_ok:
-                raise RuntimeError("Falla en Pasarela de Pagos (Rechazo Financiero). Disparando Compensación Inversa (C1).")
+                if not pago_ok:
+                    raise RuntimeError(
+                        "Falla en Pasarela de Pagos (Rechazo Financiero). "
+                        "Disparando Compensación Inversa."
+                    )
 
-            pedido.transicionar_a(EstadoPedido.PAGADO, "Cobro aprobado por pasarela financiera")
-            self.Colmena_service.guardar_pedido_y_evento(
-                pedido, "bina.la_colmena.pedido.pagado"
-            )
-            msg_t2 = f"T2 [Pagos]: Débito de ${pedido.total:,.2f} exitoso en pasarela."
-            log_saga.append(msg_t2)
-            logger.info(msg_t2)
+                pedido.transicionar_a(
+                    EstadoPedido.PAGADO,
+                    "Cobro aprobado por pasarela financiera",
+                )
+                pedido.transicionar_saga_a(
+                    EstadoSaga.CONFIRMED,
+                    "La pasarela confirmó el cobro",
+                )
+                self.Colmena_service.guardar_pedido_y_evento(
+                    pedido, "bina.la_colmena.pedido.pagado"
+                )
+                msg_t2 = f"T2 [Pagos]: Débito de ${pedido.total:,.2f} exitoso en pasarela."
+                log_saga.append(msg_t2)
+                logger.info(msg_t2)
 
             # =========================================================================
             # PASO T3: Facturación Electrónica y Despacho
@@ -353,12 +435,30 @@ class SagaOrquestadorMatriculaPedido:
 
             if 'pedido' in locals() and pedido is not None:
                 logger.warning(f"Iniciando Compensación C1 para Pedido {pedido.id_pedido}...")
-                pedido = self.Colmena_service.compensar_pedido(
-                    pedido,
-                    f"Aborto por falla en paso T2: {str(e)}",
-                )
-                msg_c1 = "C1 [Compensación Inventario]: Stock devuelto a la Colmena. Estado: COMPENSADO."
-                log_saga.append(msg_c1)
-                logger.info(msg_c1)
+                try:
+                    pedido = self._compensar(
+                        pedido,
+                        f"Compensación por fallo de Saga: {str(e)}",
+                        log_saga,
+                    )
+                except Exception as compensation_error:
+                    logger.exception(
+                        "No se pudo completar la compensación del pedido %s",
+                        pedido.id_pedido,
+                    )
+                    return {
+                        "exito": False,
+                        "pedido": pedido,
+                        "log": log_saga,
+                        "error": str(e),
+                        "error_compensacion": str(compensation_error),
+                        "error_type": type(e).__name__,
+                    }
 
-            return {"exito": False, "pedido": locals().get('pedido', None), "log": log_saga, "error": str(e)}
+            return {
+                "exito": False,
+                "pedido": locals().get("pedido"),
+                "log": log_saga,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            }

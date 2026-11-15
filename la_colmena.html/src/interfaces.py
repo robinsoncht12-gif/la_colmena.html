@@ -119,6 +119,11 @@ class IPasarelaPagos(ABC):
         pass
 
     @abstractmethod
-    def reembolsar(self, id_pedido: str, monto: float) -> bool:
+    def reembolsar(
+        self,
+        id_pedido: str,
+        monto: float,
+        idempotency_key: str,
+    ) -> bool:
         """Ejecuta la compensación financiera si se requiere devolver los fondos."""
         pass

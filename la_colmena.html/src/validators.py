@@ -54,6 +54,11 @@ class Validator:
                 f"La idempotency_key debe tener entre 8 y 120 caracteres. Longitud actual: {len(k)}",
                 campo="idempotency_key"
             )
+        if any(character.isspace() for character in k):
+            raise ValidationError(
+                "La idempotency_key no puede contener espacios.",
+                campo="idempotency_key",
+            )
         return k
 
     @staticmethod

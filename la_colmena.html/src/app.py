@@ -25,7 +25,18 @@ from src.database import DB_PATH, database_connection
 from src.events import crear_cloudevent
 from src.logger import get_logger
 from src.outbox import OutboxWorker, RabbitMQPublisher
-from src.repositories import SQLiteOutboxRepository, insertar_evento_outbox
+from src.repositories import (
+    SQLiteOutboxRepository,
+    SQLitePedidoRepository,
+    SQLiteProductoRepository,
+    insertar_evento_outbox,
+)
+from src.services import (
+    ColmenaService,
+    PasarelaPagosMock,
+    SagaOrquestadorMatriculaPedido,
+)
+from src.validators import ValidationError, Validator
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DB = DB_PATH
@@ -35,6 +46,8 @@ VENDOR_ROLE = "Vendedor"
 CLIENT_ROLE = "Cliente"
 VALID_ROLES = (ADMIN_ROLE, VENDOR_ROLE, CLIENT_ROLE)
 logger = get_logger("WebApp")
+_SAGA_RUNTIME_DB = None
+_SAGA_RUNTIME = None
 
 def init_db():
     generated_initial_password = None
@@ -188,6 +201,23 @@ def query(sql, params=()):
         connection.row_factory = sqlite3.Row
         cursor = connection.execute(sql, params)
         return [dict(row) for row in cursor.fetchall()]
+
+
+def _saga_orquestador():
+    global _SAGA_RUNTIME_DB, _SAGA_RUNTIME
+    if _SAGA_RUNTIME is None or _SAGA_RUNTIME_DB != DB:
+        producto_repo = SQLiteProductoRepository(DB)
+        pedido_repo = SQLitePedidoRepository(DB)
+        outbox_repo = SQLiteOutboxRepository(DB)
+        service = ColmenaService(
+            producto_repo, pedido_repo, outbox_repo, db_path=DB
+        )
+        _SAGA_RUNTIME = SagaOrquestadorMatriculaPedido(
+            service, PasarelaPagosMock()
+        )
+        _SAGA_RUNTIME_DB = DB
+    return _SAGA_RUNTIME
+
 
 with open(os.path.join(BASE, "index.html"), encoding="utf-8") as f:
     HTML = f.read()
@@ -498,6 +528,73 @@ class H(BaseHTTPRequestHandler):
                     return
                 self.send_json(
                     {"ok": True, "mensaje": "Usuario creado correctamente"}
+                )
+            elif path == "/api/ordenes":
+                if not self._require_roles(user, VALID_ROLES):
+                    return
+                try:
+                    idempotency_key = Validator.validar_idempotency_key(
+                        self.headers.get("Idempotency-Key", "")
+                    )
+                    address = data.get("direccion")
+                    if not isinstance(address, str):
+                        raise ValidationError(
+                            "El campo 'direccion' debe ser texto.",
+                            campo="direccion",
+                        )
+                    address = Validator.validar_no_vacio(address, "direccion")
+                    items = Validator.validar_items_pedido(data.get("items"))
+                except ValidationError as error:
+                    self.send_json(
+                        {"ok": False, "error": str(error)}, 400
+                    )
+                    return
+
+                result = _saga_orquestador().ejecutar_saga_pedido(
+                    cliente_id=f"USR-{user['id']}",
+                    cliente_nombre=user["nombre"],
+                    direccion=address,
+                    items_req=items,
+                    idempotency_key=idempotency_key,
+                )
+                pedido = result.get("pedido")
+                if pedido is None:
+                    status = (
+                        400
+                        if result.get("error_type") == "ValidationError"
+                        else 500
+                    )
+                    if status == 500:
+                        logger.error(
+                            "No se pudo crear la orden Saga: %s",
+                            result.get("error"),
+                        )
+                    self.send_json(
+                        {
+                            "ok": False,
+                            "error": result.get(
+                                "error", "No se pudo procesar la orden"
+                            ),
+                        },
+                        status,
+                    )
+                    return
+
+                self.send_json(
+                    {
+                        "ok": result["exito"],
+                        "pedido": {
+                            "id": pedido.id_pedido,
+                            "estado": pedido.estado.value,
+                            "saga_status": pedido.estado_saga.value,
+                            "total": pedido.total,
+                        },
+                        "error": result.get("error"),
+                        "error_compensacion": result.get(
+                            "error_compensacion"
+                        ),
+                    },
+                    200 if result["exito"] else 409,
                 )
             elif path == "/api/ventas":
                 if not self._require_roles(
