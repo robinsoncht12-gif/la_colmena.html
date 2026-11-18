@@ -79,9 +79,12 @@ El servidor levantará en `http://localhost:8086` con:
 - La entrega es al menos una vez: un consumidor debe deduplicar usando el `id` CloudEvent.
 
 Para levantar Kafka localmente con Docker Compose, configura la dirección del broker en PowerShell:
+El servicio `broker-init` prepara automáticamente los permisos del volumen persistente para Kafka.
 
 ```powershell
-$env:LACOLMENA_KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
+# Desde la raíz del repositorio:
+Set-Location .\la_colmena.html
+$env:LACOLMENA_KAFKA_BOOTSTRAP_SERVERS = "127.0.0.1:9092"
 docker compose up -d broker
 docker compose ps
 Test-NetConnection 127.0.0.1 -Port 9092
@@ -91,7 +94,8 @@ python main.py
 Para inspeccionar los CloudEvents desde otra consola:
 
 ```powershell
-docker compose exec broker /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic bina.events --from-beginning
+Set-Location .\la_colmena.html
+docker compose exec broker /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server broker:19092 --topic bina.events --from-beginning
 ```
 
 Kafka debe estar disponible antes de procesar eventos; la aplicación puede iniciar sin el broker y conservará los eventos pendientes en SQLite. El Compose de desarrollo expone el listener solo en `127.0.0.1` y no habilita autenticación; no debe exponerse a redes no confiables.
