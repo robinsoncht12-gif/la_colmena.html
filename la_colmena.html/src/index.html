@@ -392,6 +392,37 @@
             list-style: none
         }
 
+        .process-events-archive > summary {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border: 1px solid #dbe3ed;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #1e3a8a;
+            font-weight: 700;
+            cursor: pointer
+        }
+
+        .older-sales-details {
+            margin-top: 12px;
+            border: 1px solid #dbe3ed;
+            border-radius: 8px;
+            background: #f8fafc
+        }
+
+        .older-sales-details > summary {
+            padding: 10px 12px;
+            color: #1e3a8a;
+            font-weight: 700;
+            cursor: pointer
+        }
+
+        .older-sales-list {
+            max-height: 300px;
+            overflow: auto;
+            padding: 0 10px 10px
+        }
+
         .process-event {
             padding: 12px 14px;
             border: 1px solid #dbe3ed;
@@ -1757,35 +1788,14 @@
                 <div class="card"><small>Unidades disponibles</small><h3 id="rStock">0</h3><span class="badge ok" id="rProd">0 productos</span></div>
                 <div class="card"><small>Pedidos abiertos</small><h3 id="rPedidos">0</h3><span class="badge warn">Por recibir</span></div>
             </div>
+            <div id="paymentCircuitPanel" class="payment-circuit box hidden" role="status" aria-live="polite">
+                <div class="sale-console-heading"><strong>Circuit Breaker · Pasarela mock</strong><span id="paymentCircuitBadge" class="circuit-badge" data-state="unknown">Consultando…</span></div>
+                <p id="paymentCircuitDetails" class="summary-note">Leyendo estado del backend…</p>
+                <p id="paymentCircuitTrace" class="circuit-trace">traceparent: pendiente</p>
+            </div>
             <div class="grid2">
                 <div class="box"><h3>⚠️ Atención requerida</h3><p class="summary-note" id="bajoCount"></p><div id="bajoList"></div></div>
                 <div class="box"><h3>🛒 Ventas recientes</h3><div id="ventasResumen"></div></div>
-            </div>
-            <div class="box" id="sagaDashboardBox">
-                <div class="sale-console-heading">
-                    <div><h3>Consola Saga</h3><p class="summary-note">Última ejecución: inventario, pasarela de pagos, facturación y compensaciones.</p></div>
-                    <button class="btn2" type="button" onclick="show('ventas')">Nueva simulación</button>
-                </div>
-                <pre id="sagaDashboardConsole" class="sale-event-console" role="log" aria-live="polite">PROCEDIMIENTO SAGA
-T1 · Inventario: valida disponibilidad y reserva el stock.
-T2 · Pasarela de pagos (mock): procesa el cobro y devuelve aprobado o rechazado.
-T3 · Facturación y despacho: completa el pedido cuando el pago fue aprobado.
-Compensaciones: C1 restaura el stock; C2 reembolsa si ya se había cobrado.
-
-Ejecuta una simulación desde Ventas para ver el resultado real de cada etapa.</pre>
-                <div id="paymentCircuitPanel" class="payment-circuit" role="status" aria-live="polite">
-                    <div class="sale-console-heading"><strong>Circuit Breaker · Pasarela mock</strong><span id="paymentCircuitBadge" class="circuit-badge" data-state="unknown">Consultando…</span></div>
-                    <p id="paymentCircuitDetails" class="summary-note">Leyendo estado del backend…</p>
-                    <p id="paymentCircuitTrace" class="circuit-trace">traceparent: pendiente</p>
-                </div>
-                <p id="sagaDashboardRunBy" class="saga-run-by" hidden></p>
-                <ol id="sagaDashboardTimeline" class="saga-timeline" aria-label="Etapas T1, T2 y T3 de la Saga" aria-live="polite">
-                    <li data-status="not-run"><div class="saga-step-heading"><strong>T1 · Inventario y reserva</strong><span class="saga-step-status">Esperando simulación</span></div><p class="saga-step-detail">Se valida disponibilidad y se reserva el stock del producto.</p></li>
-                    <li data-status="not-run"><div class="saga-step-heading"><strong>T2 · Pasarela de pagos (mock)</strong><span class="saga-step-status">Esperando simulación</span></div><p class="saga-step-detail">La pasarela de prueba procesa el cobro y confirma o rechaza el pago.</p></li>
-                    <li data-status="not-run"><div class="saga-step-heading"><strong>T3 · Facturación y despacho</strong><span class="saga-step-status">Esperando simulación</span></div><p class="saga-step-detail">Se completa el pedido si la pasarela aprobó el pago.</p></li>
-                    <li data-status="not-run"><div class="saga-step-heading"><strong>C2 · Reembolso</strong><span class="saga-step-status">Condicional</span></div><p class="saga-step-detail">Se ejecuta si el cobro se confirmó y después falla otro paso.</p></li>
-                    <li data-status="not-run"><div class="saga-step-heading"><strong>C1 · Restauración de inventario</strong><span class="saga-step-status">Condicional</span></div><p class="saga-step-detail">Restaura el stock reservado cuando la Saga debe compensarse.</p></li>
-                </ol>
             </div>
             <div class="box" id="businessEventBox">
                 <div class="sale-console-heading">
@@ -1808,7 +1818,7 @@ Ejecuta una simulación desde Ventas para ver el resultado real de cada etapa.</
                 <div class="box"><h3 id="ventaTitulo">Registrar venta</h3><label id="clienteLabel" for="vCliente">Cliente</label><input id="vCliente" value="Cliente Mostrador"><label for="vProducto">Producto</label><select id="vProducto"></select><label for="vCant">Cantidad</label><input id="vCant" type="number" value="1" min="1"><button id="ventaSubmit" class="btn" style="width:100%;margin-top:10px" onclick="registrarVenta()">Confirmar venta ✅</button><p id="ventaMsg" role="status"></p></div>
                 <div id="historialVentasBox" class="box"><h3>Historial de ventas</h3><div id="listaVentas"></div></div>
             </div>
-            <div class="box">
+            <div class="box" id="saleSagaConsoleBox">
                 <div class="sale-console-heading">
                     <div><h3>Consola de venta y Saga</h3><p class="summary-note">La venta tradicional muestra su CloudEvent. La simulación Saga indica cada etapa y declara si ejecutó compensaciones C1/C2.</p></div>
                     <button class="btn2" type="button" onclick="limpiarConsolaVenta()">Limpiar</button>
@@ -1952,8 +1962,13 @@ function configurarInterfazRol(usuario){
     :null;
   if(circuitRefreshTimer)clearInterval(circuitRefreshTimer);
   circuitRefreshTimer=puedeVerProcesos?setInterval(cargarEstadoCircuito,1200):null;
+  document.getElementById('paymentCircuitPanel').classList.toggle('hidden',!puedeVerProcesos);
   document.getElementById('businessEventBox').classList.toggle('hidden',!puedeVerProcesos);
-  if(puedeVerProcesos)cargarEventosProceso();
+  document.getElementById('saleSagaConsoleBox').classList.toggle('hidden',!puedeVerProcesos);
+  if(puedeVerProcesos){
+    cargarEventosProceso();
+    cargarEstadoCircuito();
+  }
   document.getElementById('quickInventoryBtn').classList.toggle('hidden',!esAdministrador);
   document.getElementById('ventaTitulo').innerText=esCliente?'Comprar productos':'Registrar venta';
   document.getElementById('ventaSubmit').innerText=esCliente?'Realizar compra':'Confirmar venta ✅';
@@ -2022,12 +2037,13 @@ async function cargarEstadoCircuito(){
     badge.dataset.state=circuit.state;
     const cooling=circuit.state==='OPEN'?` · recuperación en ${circuit.remaining_seconds}s`:'';
     const probing=circuit.probe_in_flight?' · prueba en curso':'';
-    details.textContent=`Fallos consecutivos: ${circuit.consecutive_failures}/${circuit.failure_threshold}${cooling}${probing} · pausa mock: ${circuit.delay_ms} ms`;
+    details.textContent=`Fallos consecutivos: ${circuit.consecutive_failures}/${circuit.failure_threshold}${cooling}${probing} · recuperación: ${circuit.recovery_seconds}s · pausa mock: ${circuit.delay_ms} ms`;
     trace.textContent=`traceparent: ${response._traceparent||'no informado'}`;
   }catch(error){
     badge.textContent='No disponible';
     badge.dataset.state='unknown';
     details.textContent=error.message;
+    trace.textContent='traceparent: no disponible';
   }
 }
 function show(id,btn){
@@ -2067,8 +2083,10 @@ async function cargarTodo(){
   await cargarCatalogoSaga();
 
   let ventas=await apiJson('/api/ventas');
-  let htmlVentas=ventas.map(v=>`<tr><td><b>#V-${v.id}</b></td><td>${v.cliente}</td><td><span class="badge ${v.estado=='Pagada'?'ok':'warn'}">${v.estado}</span></td><td style="text-align:right"><b>$${v.total.toLocaleString()}</b></td></tr>`).join('');
-  document.getElementById('listaVentas').innerHTML=`<table><tr><th>Venta</th><th>Cliente</th><th>Estado</th><th>Total</th></tr>${htmlVentas}</table>`;
+  const tablaVentas=lista=>`<table><tr><th>Venta</th><th>Cliente</th><th>Estado</th><th>Total</th></tr>${lista.map(v=>`<tr><td><b>#V-${v.id}</b></td><td>${v.cliente}</td><td><span class="badge ${v.estado=='Pagada'?'ok':'warn'}">${v.estado}</span></td><td style="text-align:right"><b>$${v.total.toLocaleString()}</b></td></tr>`).join('')}</table>`;
+  const ventasRecientes=ventas.slice(0,10);
+  const ventasAnteriores=ventas.slice(10);
+  document.getElementById('listaVentas').innerHTML=`${tablaVentas(ventasRecientes)}${ventasAnteriores.length?`<details class="older-sales-details"><summary>Ventas anteriores (${ventasAnteriores.length})</summary><div class="older-sales-list">${tablaVentas(ventasAnteriores)}</div></details>`:''}`;
   document.getElementById('ventasResumen').innerHTML=`<table><tr><th>Venta</th><th>Cliente</th><th>Total</th></tr>${ventas.slice(0,3).map(v=>`<tr><td>#V-${v.id}</td><td>${v.cliente}</td><td>$${v.total.toLocaleString()}</td></tr>`).join('')}</table>`;
 
   let pedidos=await apiJson('/api/pedidos');
@@ -2218,6 +2236,49 @@ function cargarUltimaSagaPersistida(events){
   ].join('\n'));
   renderSagaTimeline(result,'',false,actor);
 }
+function crearTarjetaEventoProceso(event){
+  const data=event.data||{};
+  const actor=data.actor;
+  const item=document.createElement('li');
+  item.className='process-event';
+  const heading=document.createElement('div');
+  heading.className='process-event-heading';
+  const title=document.createElement('strong');
+  title.textContent=nombreProcesoEvento(event);
+  const badge=document.createElement('span');
+  badge.className='process-event-status';
+  const hasError=event.status==='PENDING'&&Boolean(event.last_error);
+  badge.dataset.status=hasError?'ERROR':event.status;
+  badge.textContent=hasError?'Error en Kafka':event.status==='PROCESSED'?'Publicado en Kafka':'Pendiente de publicar';
+  heading.append(title,badge);
+  const actorLine=document.createElement('p');
+  actorLine.className='process-event-actor';
+  actorLine.textContent=actor
+    ?`Usuario: ${actor.name||'Sin nombre'} · ${actor.role||'Rol no disponible'} · ID ${actor.user_id??'—'}`
+    :'Usuario no identificado (evento anterior a la auditoría).';
+  const detail=document.createElement('p');
+  detail.className='process-event-detail';
+  detail.textContent=detalleProcesoEvento(data);
+  const time=document.createElement('p');
+  time.className='process-event-time';
+  const occurredAt=new Date(Number(event.timestamp)*1000);
+  time.textContent=`${occurredAt.toLocaleString('es-CO')} · Event ID ${event.event_id||'—'}`;
+  item.append(heading,actorLine,detail,time);
+  if(event.last_error){
+    const error=document.createElement('p');
+    error.className='process-event-detail';
+    error.textContent=`Error: ${event.last_error}`;
+    item.appendChild(error);
+  }
+  const disclosure=document.createElement('details');
+  const summary=document.createElement('summary');
+  summary.textContent='Ver CloudEvent JSON';
+  const payload=document.createElement('pre');
+  payload.textContent=JSON.stringify(event.cloud_event,null,2);
+  disclosure.append(summary,payload);
+  item.appendChild(disclosure);
+  return item;
+}
 async function cargarEventosProceso(){
   const list=document.getElementById('processEvents');
   const status=document.getElementById('processEventsStatus');
@@ -2226,63 +2287,23 @@ async function cargarEventosProceso(){
     list.replaceChildren();
     if(!response.events.length){
       status.textContent='Aún no hay procesos en el outbox. Inicia sesión o realiza una venta para generar eventos.';
-      document.getElementById('sagaDashboardConsole').textContent=[
-        'PROCEDIMIENTO SAGA · SIN EJECUCIONES REGISTRADAS',
-        'T1 · Inventario: valida disponibilidad y reserva el stock.',
-        'T2 · Pasarela de pagos (mock): procesa el cobro y responde APROBADO o RECHAZADO.',
-        'T3 · Facturación y despacho: se ejecuta después de un pago aprobado.',
-        'C2 · Reembolso: devuelve el pago si ya hubo débito y luego falla otro paso.',
-        'C1 · Inventario: restaura el stock reservado cuando la Saga falla.',
-        '',
-        'Las tarjetas muestran el flujo. Usa “Nueva simulación” para ver resultados reales y saber si hubo compensación.'
-      ].join('\n');
       return;
     }
     status.textContent=`Mostrando ${response.events.length} eventos recientes. Actualización automática cada 5 segundos.`;
     cargarUltimaSagaPersistida(response.events);
-    response.events.forEach(event=>{
-      const data=event.data||{};
-      const actor=data.actor;
-      const item=document.createElement('li');
-      item.className='process-event';
-      const heading=document.createElement('div');
-      heading.className='process-event-heading';
-      const title=document.createElement('strong');
-      title.textContent=nombreProcesoEvento(event);
-      const badge=document.createElement('span');
-      badge.className='process-event-status';
-      const hasError=event.status==='PENDING'&&Boolean(event.last_error);
-      badge.dataset.status=hasError?'ERROR':event.status;
-      badge.textContent=hasError?'Error en Kafka':event.status==='PROCESSED'?'Publicado en Kafka':'Pendiente de publicar';
-      heading.append(title,badge);
-      const actorLine=document.createElement('p');
-      actorLine.className='process-event-actor';
-      actorLine.textContent=actor
-        ?`Usuario: ${actor.name||'Sin nombre'} · ${actor.role||'Rol no disponible'} · ID ${actor.user_id??'—'}`
-        :'Usuario no identificado (evento anterior a la auditoría).';
-      const detail=document.createElement('p');
-      detail.className='process-event-detail';
-      detail.textContent=detalleProcesoEvento(data);
-      const time=document.createElement('p');
-      time.className='process-event-time';
-      const occurredAt=new Date(Number(event.timestamp)*1000);
-      time.textContent=`${occurredAt.toLocaleString('es-CO')} · Event ID ${event.event_id||'—'}`;
-      item.append(heading,actorLine,detail,time);
-      if(event.last_error){
-        const error=document.createElement('p');
-        error.className='process-event-detail';
-        error.textContent=`Error: ${event.last_error}`;
-        item.appendChild(error);
-      }
-      const disclosure=document.createElement('details');
+    response.events.slice(0,5).forEach(event=>list.appendChild(crearTarjetaEventoProceso(event)));
+    const anteriores=response.events.slice(5);
+    if(anteriores.length){
+      const archive=document.createElement('details');
+      archive.className='process-events-archive';
       const summary=document.createElement('summary');
-      summary.textContent='Ver CloudEvent JSON';
-      const payload=document.createElement('pre');
-      payload.textContent=JSON.stringify(event.cloud_event,null,2);
-      disclosure.append(summary,payload);
-      item.appendChild(disclosure);
-      list.appendChild(item);
-    });
+      summary.textContent=`Ver ${anteriores.length} eventos anteriores`;
+      const archiveList=document.createElement('ul');
+      archiveList.className='process-events';
+      anteriores.forEach(event=>archiveList.appendChild(crearTarjetaEventoProceso(event)));
+      archive.append(summary,archiveList);
+      list.appendChild(archive);
+    }
   }catch(error){
     status.textContent='No fue posible cargar los procesos: '+error.message;
     list.replaceChildren();
@@ -2442,15 +2463,11 @@ function escribirConsolaVenta(content){
 }
 function escribirConsolaSaga(content){
   escribirConsolaVenta(content);
-  const dashboardConsole=document.getElementById('sagaDashboardConsole');
-  dashboardConsole.textContent=content;
-  dashboardConsole.scrollTop=dashboardConsole.scrollHeight;
 }
 function limpiarConsolaVenta(){
   const message='Consola limpia. Registra una venta o ejecuta un pedido Saga.';
   escribirConsolaVenta(message);
-  document.getElementById('sagaDashboardConsole').textContent=message;
-  ['sagaRunBy','sagaDashboardRunBy','sagaResult','sagaTimeline','sagaDashboardTimeline'].forEach(id=>{
+  ['sagaRunBy','sagaResult','sagaTimeline'].forEach(id=>{
     const element=document.getElementById(id);
     element.hidden=true;
     if(element.tagName==='OL')element.replaceChildren();
@@ -2502,7 +2519,7 @@ function renderSagaTimeline(result,errorMessage='',unknown=false,actorOverride=n
   const actorId=actor?.user_id?` · ID ${actor.user_id}`:'';
   const orderId=result.pedido?.id?` · Pedido ${result.pedido.id}`:'';
   const actorText=`Ejecución solicitada por ${actorName} · ${actorRole}${actorId}${orderId}`;
-  [['sagaTimeline','sagaRunBy'],['sagaDashboardTimeline','sagaDashboardRunBy']].forEach(([listId,actorId])=>{
+  [['sagaTimeline','sagaRunBy']].forEach(([listId,actorId])=>{
     const list=document.getElementById(listId);
     list.replaceChildren();
     stages.forEach(stage=>{
@@ -2551,13 +2568,9 @@ async function procesarPedidoSaga(){
   resultSummary.textContent='';
   resultSummary.dataset.outcome='';
   document.getElementById('sagaRunBy').hidden=true;
-  document.getElementById('sagaDashboardRunBy').hidden=true;
   const timeline=document.getElementById('sagaTimeline');
   timeline.hidden=true;
   timeline.replaceChildren();
-  const dashboardTimeline=document.getElementById('sagaDashboardTimeline');
-  dashboardTimeline.hidden=true;
-  dashboardTimeline.replaceChildren();
   const payload={
     direccion:address,
     items:[{codigo:product.codigo,cantidad:quantity}],

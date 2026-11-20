@@ -17,6 +17,7 @@ from src.interfaces import IProductoRepository, IPedidoRepository, IOutboxReposi
 from src.logger import get_logger
 from src.database import DB_PATH, database_connection
 from src.events import crear_cloudevent
+from src.tracing import record_business_event
 
 logger = get_logger("Repositories")
 
@@ -41,6 +42,7 @@ def insertar_evento_outbox(
         """,
         (aggregate_id, event["type"], event_json, time.time()),
     )
+    record_business_event(event["type"])
     return cursor.lastrowid
 
 

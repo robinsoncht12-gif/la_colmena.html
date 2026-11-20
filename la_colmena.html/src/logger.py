@@ -49,6 +49,7 @@ class StructuredJSONFormatter(logging.Formatter):
             log_entry["traceparent"] = record.traceparent
             log_entry["trace_id"] = record.trace_id
             log_entry["span_id"] = record.span_id
+            log_entry["business_events"] = list(record.business_events)
 
         if record.exc_info:
             log_entry["exception"] = self.formatException(record.exc_info)
@@ -77,6 +78,9 @@ class ColoredConsoleFormatter(logging.Formatter):
         msg = record.getMessage()
         if hasattr(record, "traceparent"):
             msg = f"{msg} traceparent={record.traceparent}"
+            events = getattr(record, "business_events", ())
+            event_summary = ",".join(events) if events else "ninguno"
+            msg = f"{msg} eventos_negocio={event_summary}"
         if record.exc_info:
             msg += "\n" + self.formatException(record.exc_info)
         return _safe_console_text(f"{color}{prefix}{self.RESET} {msg}")

@@ -2,7 +2,8 @@ import json
 import os
 import secrets
 import sqlite3
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer as HTTPServer
+import threading
 from http.cookies import CookieError, SimpleCookie
 from urllib.parse import urlparse
 
@@ -49,6 +50,7 @@ VALID_ROLES = (ADMIN_ROLE, VENDOR_ROLE, CLIENT_ROLE)
 logger = get_logger("WebApp")
 _SAGA_RUNTIME_DB = None
 _SAGA_RUNTIME = None
+_SAGA_RUNTIME_LOCK = threading.Lock()
 
 
 def _actor_event_data(user):
@@ -223,7 +225,7 @@ def query(sql, params=()):
         return [dict(row) for row in cursor.fetchall()]
 
 
-def _saga_orquestador():
+def _crear_saga_orquestador():
     global _SAGA_RUNTIME_DB, _SAGA_RUNTIME
     if _SAGA_RUNTIME is None or _SAGA_RUNTIME_DB != DB:
         producto_repo = SQLiteProductoRepository(DB)
@@ -242,6 +244,11 @@ def _saga_orquestador():
         )
         _SAGA_RUNTIME_DB = DB
     return _SAGA_RUNTIME
+
+
+def _saga_orquestador():
+    with _SAGA_RUNTIME_LOCK:
+        return _crear_saga_orquestador()
 
 
 with open(os.path.join(BASE, "index.html"), encoding="utf-8") as f:
