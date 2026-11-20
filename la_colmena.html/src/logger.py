@@ -8,8 +8,10 @@ Dependencias: NINGUNA (Python Standard Library `logging`, `json`, `sys`, `time`)
 """
 import logging
 import json
+import os
 import sys
 import time
+from src.tracing import TraceContextFilter
 
 
 def _safe_console_text(value: str) -> str:
@@ -43,6 +45,10 @@ class StructuredJSONFormatter(logging.Formatter):
             log_entry["cliente_id"] = record.cliente_id
         if hasattr(record, "order_id"):
             log_entry["order_id"] = record.order_id
+        if hasattr(record, "traceparent"):
+            log_entry["traceparent"] = record.traceparent
+            log_entry["trace_id"] = record.trace_id
+            log_entry["span_id"] = record.span_id
 
         if record.exc_info:
             log_entry["exception"] = self.formatException(record.exc_info)
@@ -69,6 +75,8 @@ class ColoredConsoleFormatter(logging.Formatter):
         tiempo = time.strftime("%H:%M:%S", time.localtime(record.created))
         prefix = f"[{tiempo}] [{record.levelname:<8}] [{record.name}]"
         msg = record.getMessage()
+        if hasattr(record, "traceparent"):
+            msg = f"{msg} traceparent={record.traceparent}"
         if record.exc_info:
             msg += "\n" + self.formatException(record.exc_info)
         return _safe_console_text(f"{color}{prefix}{self.RESET} {msg}")
@@ -79,6 +87,7 @@ def get_logger(name: str, level: int = logging.INFO, use_json: bool = False) -> 
     Factory de Loggers desacoplado para uso a lo largo de toda la aplicación.
     Permite alternar entre salida legible por humanos y JSON para producción/monitoreo.
     """
+    use_json = use_json or os.environ.get("LACOLMENA_LOG_FORMAT", "").lower() == "json"
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
@@ -86,6 +95,7 @@ def get_logger(name: str, level: int = logging.INFO, use_json: bool = False) -> 
     if not logger.handlers:
         handler = logging.StreamHandler(sys.stdout)
         handler.setLevel(level)
+        handler.addFilter(TraceContextFilter())
         if use_json:
             handler.setFormatter(StructuredJSONFormatter())
         else:

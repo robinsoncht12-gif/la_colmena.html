@@ -13,7 +13,7 @@ El notebook [Modelo C4 de La Colmena](../notebooks/Modelo_C4_La_Colmena.ipynb) c
 ```mermaid
 C4Context
     title La Colmena — C1 Contexto
-    Person(admin, "Administradora", "Gestiona usuarios, inventario y operación")
+    Person(admin, "Administrador", "Gestiona usuarios, inventario y operación")
     Person(vendedor, "Vendedor", "Consulta el catálogo y registra ventas")
     Person(cliente, "Cliente", "Consulta el catálogo y realiza compras")
     System(colmena, "La Colmena", "Gestión comercial de supermercado; monolito modular Python")
@@ -31,7 +31,7 @@ La pasarela de pago actual es `PasarelaPagosMock`, ejecutada dentro del proceso 
 ```mermaid
 C4Container
     title La Colmena — C2 Contenedores
-    Person(usuario, "Usuario", "Administradora, vendedor o cliente")
+    Person(usuario, "Usuario", "Administrador, vendedor o cliente")
     System_Boundary(colmena, "La Colmena") {
         Container(web, "Cliente web", "HTML, CSS y JavaScript", "src/index.html ejecutado en el navegador")
         Container(api, "Web/API y Saga", "Python 3.10+, http.server", "Autenticación, endpoints, servicios y worker de outbox en un proceso")

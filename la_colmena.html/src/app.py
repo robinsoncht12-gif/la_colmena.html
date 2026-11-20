@@ -36,18 +36,34 @@ from src.services import (
     PasarelaPagosMock,
     SagaOrquestadorMatriculaPedido,
 )
+from src.tracing import current_traceparent, start_trace
 from src.validators import ValidationError, Validator
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DB = DB_PATH
 MAX_REQUEST_BYTES = 16_384
-ADMIN_ROLE = "Administradora"
+ADMIN_ROLE = "Administrador"
 VENDOR_ROLE = "Vendedor"
 CLIENT_ROLE = "Cliente"
 VALID_ROLES = (ADMIN_ROLE, VENDOR_ROLE, CLIENT_ROLE)
 logger = get_logger("WebApp")
 _SAGA_RUNTIME_DB = None
 _SAGA_RUNTIME = None
+
+
+def _actor_event_data(user):
+    return {
+        "user_id": user["id"],
+        "name": user["nombre"],
+        "role": user["rol"],
+    }
+
+
+def _create_actor_event(event_type, user, data):
+    return crear_cloudevent(
+        event_type,
+        {**data, "actor": _actor_event_data(user)},
+    )
 
 def init_db():
     generated_initial_password = None
@@ -61,6 +77,10 @@ def init_db():
                 rol TEXT NOT NULL
             )
         """)
+        connection.execute(
+            "UPDATE usuarios SET rol = ? WHERE rol = ?",
+            (ADMIN_ROLE, "Administradora"),
+        )
         columns = {
             row[1] for row in connection.execute("PRAGMA table_info(usuarios)")
         }
@@ -150,7 +170,7 @@ def init_db():
                     "Ana Martínez",
                     "demo@lacolmena.co",
                     hash_password(initial_password),
-                    "Administradora",
+                    "Administrador",
                 ),
             )
 
@@ -212,8 +232,13 @@ def _saga_orquestador():
         service = ColmenaService(
             producto_repo, pedido_repo, outbox_repo, db_path=DB
         )
+        try:
+            delay_ms = max(0, min(30_000, int(os.environ.get("PASARELA_MOCK_DELAY_MS", "0"))))
+        except ValueError:
+            logger.warning("PASARELA_MOCK_DELAY_MS no es válido; se usará 0 ms.")
+            delay_ms = 0
         _SAGA_RUNTIME = SagaOrquestadorMatriculaPedido(
-            service, PasarelaPagosMock()
+            service, PasarelaPagosMock(delay_seconds=delay_ms / 1000)
         )
         _SAGA_RUNTIME_DB = DB
     return _SAGA_RUNTIME
@@ -223,7 +248,17 @@ with open(os.path.join(BASE, "index.html"), encoding="utf-8") as f:
     HTML = f.read()
 
 class H(BaseHTTPRequestHandler):
+    def parse_request(self):
+        parsed = super().parse_request()
+        if parsed:
+            start_trace(self.headers.get("traceparent"))
+        return parsed
+
     def end_headers(self):
+        traceparent = current_traceparent()
+        if traceparent and not getattr(self, "_traceparent_header_sent", False):
+            self.send_header("traceparent", traceparent)
+            self._traceparent_header_sent = True
         self.send_header(
             "Content-Security-Policy",
             "default-src 'self'; script-src 'self' 'unsafe-inline'; "
@@ -336,6 +371,18 @@ class H(BaseHTTPRequestHandler):
                 (upgraded_hash, user["id"]),
             )
 
+        login_event = _create_actor_event(
+            "bina.la_colmena.autenticacion.login",
+            user,
+            {"action": "login"},
+        )
+        with database_connection(DB) as connection:
+            insertar_evento_outbox(
+                connection,
+                f"USR-{user['id']}",
+                login_event.to_dict(),
+            )
+
         token = SESSION_STORE.create(user)
         self.send_json(
             {
@@ -351,8 +398,27 @@ class H(BaseHTTPRequestHandler):
 
     def _logout(self):
         token = self._session_token()
+        user = SESSION_STORE.get(token) if token else None
         if token:
             SESSION_STORE.revoke(token)
+        if user:
+            try:
+                logout_event = _create_actor_event(
+                    "bina.la_colmena.autenticacion.logout",
+                    user,
+                    {"action": "logout"},
+                )
+                with database_connection(DB) as connection:
+                    insertar_evento_outbox(
+                        connection,
+                        f"USR-{user['id']}",
+                        logout_event.to_dict(),
+                    )
+            except sqlite3.Error:
+                logger.exception(
+                    "No se pudo guardar el evento de cierre de sesión del usuario %s",
+                    user["id"],
+                )
         self.send_json(
             {"ok": True},
             headers={"Set-Cookie": clear_session_cookie()},
@@ -377,6 +443,18 @@ class H(BaseHTTPRequestHandler):
                 )
                 return
 
+            if path == "/api/circuit-breaker":
+                if not self._require_roles(user, (ADMIN_ROLE, VENDOR_ROLE)):
+                    return
+                gateway = _saga_orquestador().pasarela
+                circuit = gateway.circuit_breaker.snapshot()
+                circuit.update({
+                    "delay_ms": round(gateway.delay_seconds * 1000),
+                    "component": "PasarelaPagosMock",
+                })
+                self.send_json({"ok": True, "circuit": circuit})
+                return
+
             if path == "/api/productos":
                 if user["rol"] == CLIENT_ROLE:
                     self.send_json(
@@ -386,6 +464,19 @@ class H(BaseHTTPRequestHandler):
                     )
                 else:
                     self.send_json(query("SELECT * FROM productos"))
+            elif path == "/api/catalogo-saga":
+                products = _saga_orquestador().Colmena_service.listar_catalogo()
+                self.send_json(
+                    [
+                        {
+                            "codigo": product.codigo,
+                            "nombre": product.nombre,
+                            "categoria": product.categoria,
+                            "precio": product.precio,
+                        }
+                        for product in products
+                    ]
+                )
             elif path == "/api/usuarios":
                 if self._is_admin(user):
                     self.send_json(
@@ -394,6 +485,24 @@ class H(BaseHTTPRequestHandler):
             elif path == "/api/ventas":
                 if self._require_roles(user, (ADMIN_ROLE, VENDOR_ROLE)):
                     self.send_json(query("SELECT * FROM ventas ORDER BY id DESC"))
+            elif path == "/api/eventos":
+                if not self._require_roles(user, (ADMIN_ROLE, VENDOR_ROLE)):
+                    return
+                events = query(
+                    """
+                    SELECT id, aggregate_id, event_type, payload_json, timestamp,
+                           status, processed_at, attempts, last_error
+                    FROM outbox_events
+                    ORDER BY id DESC
+                    LIMIT 100
+                    """
+                )
+                for event in events:
+                    payload = json.loads(event.pop("payload_json"))
+                    event["event_id"] = payload.get("id")
+                    event["data"] = payload.get("data", {})
+                    event["cloud_event"] = payload
+                self.send_json({"events": events})
             elif path == "/api/pedidos":
                 if self._require_roles(user, (ADMIN_ROLE, VENDOR_ROLE)):
                     self.send_json(query("SELECT * FROM pedidos"))
@@ -533,7 +642,12 @@ class H(BaseHTTPRequestHandler):
                         user_id = cursor.lastrowid
                         event = crear_cloudevent(
                             "bina.la_colmena.usuario.creado",
-                            {"user_id": user_id, "role": role},
+                            {
+                                "user_id": user_id,
+                                "role": role,
+                                "action": "user.create",
+                                "actor": _actor_event_data(user),
+                            },
                         )
                         insertar_evento_outbox(
                             connection, str(user_id), event.to_dict()
@@ -584,6 +698,7 @@ class H(BaseHTTPRequestHandler):
                     items_req=items,
                     idempotency_key=idempotency_key,
                     simular_falla_pago=simular_falla_pago,
+                    actor=_actor_event_data(user),
                 )
                 pedido = result.get("pedido")
                 if pedido is None:
@@ -691,6 +806,8 @@ class H(BaseHTTPRequestHandler):
                             "quantity": quantity,
                             "unit_price": product["precio"],
                             "total": total,
+                            "action": "sale.register",
+                            "actor": _actor_event_data(user),
                         },
                     )
                     insertar_evento_outbox(
@@ -747,6 +864,8 @@ class H(BaseHTTPRequestHandler):
                             "product_name": product["nombre"],
                             "previous_stock": product["stock"],
                             "stock": stock,
+                            "action": "inventory.adjust",
+                            "actor": _actor_event_data(user),
                         },
                     )
                     insertar_evento_outbox(
@@ -830,7 +949,12 @@ class H(BaseHTTPRequestHandler):
                 )
                 event = crear_cloudevent(
                     "bina.la_colmena.usuario.eliminado",
-                    {"user_id": target_id, "role": target[1]},
+                    {
+                        "user_id": target_id,
+                        "role": target[1],
+                        "action": "user.delete",
+                        "actor": _actor_event_data(user),
+                    },
                 )
                 insertar_evento_outbox(
                     connection, str(target_id), event.to_dict()
@@ -844,6 +968,11 @@ class H(BaseHTTPRequestHandler):
             )
 
     def log_message(self, format_string, *args):
+        if (
+            self.command == "GET"
+            and urlparse(self.path).path in ("/api/outbox", "/api/eventos")
+        ):
+            return
         logger.info("%s - %s", self.address_string(), format_string % args)
 
 def run_server(host="127.0.0.1", port=8086):

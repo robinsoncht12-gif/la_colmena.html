@@ -60,13 +60,13 @@ El servidor levantará en `http://localhost:8086` con:
 - Las contraseñas nuevas se almacenan como Argon2id con salt aleatorio; las consultas SQL usan parámetros.
 - Al iniciar, la aplicación migra contraseñas heredadas en texto plano a Argon2id y vacía la columna antigua `password`. Los hashes PBKDF2 existentes se actualizan a Argon2id tras un inicio de sesión correcto.
 - El login limita intentos por IP (Token Bucket: cinco intentos y recarga de uno por minuto) y responde `429` con `Retry-After`.
-- Las API requieren sesión; la cookie es `HttpOnly`, `Secure` y `SameSite=Strict`, expira en una hora y se invalida al cerrar sesión. Las sesiones viven en memoria y se revocan al reiniciar el servidor. La administración de usuarios y la auditoría se reservan al rol Administradora.
+- Las API requieren sesión; la cookie es `HttpOnly`, `Secure` y `SameSite=Strict`, expira en una hora y se invalida al cerrar sesión. Las sesiones viven en memoria y se revocan al reiniciar el servidor. La administración de usuarios y la auditoría se reservan al rol Administrador.
 - El servidor escucha en `127.0.0.1` por defecto. No debe exponerse directamente por HTTP; para acceso remoto se requiere HTTPS, por ejemplo mediante un proxy inverso.
 - En una base nueva se crea `demo@lacolmena.co` con una contraseña aleatoria que se muestra una sola vez en la consola; también puede definirse `LACOLMENA_INITIAL_ADMIN_PASSWORD` (mínimo 12 caracteres) antes del primer inicio. No se publica una contraseña demo en la interfaz.
 
 ### Roles y permisos
 
-- **Administradora:** acceso completo, incluida la creación y eliminación de cuentas. No puede eliminar su propia cuenta ni la última cuenta administradora.
+- **Administrador:** acceso completo, incluida la creación y eliminación de cuentas. No puede eliminar su propia cuenta ni la última cuenta administrador.
 - **Vendedor:** consulta el catálogo y registra ventas; no puede ajustar el stock ni gestionar usuarios.
 - **Cliente:** consulta el catálogo sin ver existencias y realiza compras. El servidor usa la cuenta autenticada como comprador y descuenta el stock de forma transaccional.
 - Los permisos se verifican en la API; ocultar opciones en la interfaz no sustituye la autorización del servidor. Al eliminar una cuenta también se revocan sus sesiones activas.
@@ -99,6 +99,24 @@ docker compose exec broker /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-
 ```
 
 Kafka debe estar disponible antes de procesar eventos; la aplicación puede iniciar sin el broker y conservará los eventos pendientes en SQLite. El Compose de desarrollo expone el listener solo en `127.0.0.1` y no habilita autenticación; no debe exponerse a redes no confiables.
+
+Los eventos de autenticación y operaciones incluyen `data.actor` con `user_id`, `name` y `role`, además de `data.action`. Se registran inicios y cierres de sesión, ventas, ajustes de inventario, altas/bajas de usuarios y cada etapa de la Saga, incluidas las compensaciones. No se publican contraseñas ni cookies. Para ver solo los mensajes nuevos, omite `--from-beginning`; Docker Desktop administra el broker, mientras que este consumidor muestra los mensajes del topic.
+
+El dashboard recupera la última traza de Saga desde el outbox, incluso después de cerrar sesión o reiniciar el navegador, y muestra los últimos procesos para administradores y vendedores. Para explorar los eventos Kafka de forma gráfica, inicia el broker y la interfaz web:
+
+```powershell
+$dockerCli = Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\resources\bin\docker.exe'
+& $dockerCli compose up -d broker kafka-ui
+```
+
+Abre `http://localhost:8081`, selecciona el clúster `La-Colmena`, entra a `Topics` → `bina.events` → `Messages` y expande el valor JSON para ver `data.actor` y `data.action`. La interfaz solo escucha en `127.0.0.1` y no tiene autenticación; úsala localmente.
+
+Si PowerShell no encuentra `docker` en el `PATH`, usa la ruta del CLI de Docker Desktop instalada en el perfil:
+
+```powershell
+$dockerCli = Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\resources\bin\docker.exe'
+& $dockerCli compose exec broker /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server broker:19092 --topic bina.events --from-beginning
+```
 
 ## 🔁 7. Saga, compensación e idempotencia D4
 

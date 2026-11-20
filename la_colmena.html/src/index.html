@@ -223,6 +223,36 @@
             overflow-wrap: anywhere
         }
 
+        .payment-circuit {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 9px;
+            background: #f8fafc
+        }
+
+        .payment-circuit .summary-note { margin: 7px 0 0 }
+
+        .circuit-badge {
+            padding: 4px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            background: #e2e8f0;
+            color: #334155
+        }
+
+        .circuit-badge[data-state="CLOSED"] { background: #dcfce7; color: #166534 }
+        .circuit-badge[data-state="OPEN"] { background: #fee2e2; color: #991b1b }
+        .circuit-badge[data-state="HALF-OPEN"] { background: #fef3c7; color: #92400e }
+
+        .circuit-trace {
+            margin: 7px 0 0;
+            color: #64748b;
+            font: 11px/1.5 Consolas, "Courier New", monospace;
+            overflow-wrap: anywhere
+        }
+
         .saga-runner {
             margin-top: 14px;
             padding-top: 12px;
@@ -255,6 +285,169 @@
         .saga-simulate-failure input {
             width: auto;
             margin: 0
+        }
+
+        .saga-result {
+            margin: 10px 0 0;
+            padding: 12px 14px;
+            border-radius: 9px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #1e293b;
+            font-weight: 600
+        }
+
+        .saga-result[data-outcome="success"] {
+            border-color: #86efac;
+            background: #f0fdf4;
+            color: #166534
+        }
+
+        .saga-result[data-outcome="compensated"] {
+            border-color: #fcd34d;
+            background: #fffbeb;
+            color: #92400e
+        }
+
+        .saga-result[data-outcome="pending"] {
+            border-color: #fca5a5;
+            background: #fef2f2;
+            color: #991b1b
+        }
+
+        .saga-result[data-outcome="not-applicable"] {
+            border-color: #cbd5e1;
+            background: #f8fafc;
+            color: #334155
+        }
+
+        .saga-run-by {
+            margin: 10px 0 6px;
+            font-size: 13px;
+            font-weight: 700
+        }
+
+        .saga-timeline {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+            margin: 10px 0 0;
+            padding: 0;
+            list-style: none
+        }
+
+        .saga-timeline li {
+            min-width: 0;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-left: 4px solid #94a3b8;
+            border-radius: 8px;
+            background: #f8fafc
+        }
+
+        .saga-timeline li[data-status="completed"] {
+            border-left-color: #16a34a;
+            background: #f0fdf4
+        }
+
+        .saga-timeline li[data-status="rejected"],
+        .saga-timeline li[data-status="blocked"] {
+            border-left-color: #dc2626;
+            background: #fef2f2
+        }
+
+        .saga-timeline li[data-status="pending"] {
+            border-left-color: #d97706;
+            background: #fffbeb
+        }
+
+        .saga-timeline li[data-status="not-run"] {
+            color: #64748b
+        }
+
+        .saga-step-heading {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 5px
+        }
+
+        .saga-step-status {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .03em
+        }
+
+        .saga-step-detail {
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.45
+        }
+
+        .process-events {
+            display: grid;
+            gap: 10px;
+            margin: 12px 0 0;
+            padding: 0;
+            list-style: none
+        }
+
+        .process-event {
+            padding: 12px 14px;
+            border: 1px solid #dbe3ed;
+            border-radius: 9px;
+            background: #fff
+        }
+
+        .process-event-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px
+        }
+
+        .process-event-actor,
+        .process-event-detail,
+        .process-event-time {
+            margin: 5px 0 0;
+            font-size: 12px;
+            line-height: 1.45
+        }
+
+        .process-event-time {
+            color: #64748b
+        }
+
+        .process-event-status {
+            flex: 0 0 auto;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: #dcfce7;
+            color: #166534;
+            font-size: 11px;
+            font-weight: 700
+        }
+
+        .process-event-status[data-status="PENDING"] {
+            background: #fef3c7;
+            color: #92400e
+        }
+
+        .process-event-status[data-status="ERROR"] {
+            background: #fee2e2;
+            color: #991b1b
+        }
+
+        .process-event details {
+            margin-top: 8px;
+            font-size: 12px
+        }
+
+        .process-event pre {
+            max-height: 260px;
+            overflow: auto;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere
         }
 
         .hidden {
@@ -1538,15 +1731,15 @@
     <aside class="sidebar">
         <h2>🐝 La Colmena</h2><small>Gestión comercial</small>
         <div class="menu">
-            <button data-section="resumen" data-roles="Administradora,Vendedor" onclick="show('resumen',this)" class="active">📊 Resumen</button>
-            <button data-section="portafolio" data-roles="Administradora,Vendedor,Cliente" onclick="show('portafolio',this)">🛍️ Portafolio</button>
-            <button data-section="inventario" data-roles="Administradora" onclick="show('inventario',this)">📦 Inventario</button>
-            <button data-section="ventas" data-roles="Administradora,Vendedor,Cliente" data-default-label="🛒 Ventas" data-client-label="🛒 Comprar" onclick="show('ventas',this)">🛒 Ventas</button>
-            <button data-section="pedidos" data-roles="Administradora,Vendedor" onclick="show('pedidos',this)">📋 Pedidos</button>
-            <button data-section="reportes" data-roles="Administradora,Vendedor" onclick="show('reportes',this)">📈 Reportes</button>
-            <button data-section="usuarios" data-roles="Administradora" onclick="show('usuarios',this)">👥 Usuarios</button>
+            <button data-section="resumen" data-roles="Administrador,Vendedor" onclick="show('resumen',this)" class="active">📊 Resumen</button>
+            <button data-section="portafolio" data-roles="Administrador,Vendedor,Cliente" onclick="show('portafolio',this)">🛍️ Portafolio</button>
+            <button data-section="inventario" data-roles="Administrador" onclick="show('inventario',this)">📦 Inventario</button>
+            <button data-section="ventas" data-roles="Administrador,Vendedor,Cliente" data-default-label="🛒 Ventas" data-client-label="🛒 Comprar" onclick="show('ventas',this)">🛒 Ventas</button>
+            <button data-section="pedidos" data-roles="Administrador,Vendedor" onclick="show('pedidos',this)">📋 Pedidos</button>
+            <button data-section="reportes" data-roles="Administrador,Vendedor" onclick="show('reportes',this)">📈 Reportes</button>
+            <button data-section="usuarios" data-roles="Administrador" onclick="show('usuarios',this)">👥 Usuarios</button>
         </div>
-        <div class="user"><b id="userName">Ana Martínez</b><small id="userRol">Administradora</small><br><button class="logout-button" onclick="cerrarSesion()">← Cerrar sesión</button></div>
+        <div class="user"><b id="userName">Ana Martínez</b><small id="userRol">Administrador</small><br><button class="logout-button" onclick="cerrarSesion()">← Cerrar sesión</button></div>
     </aside>
 
     <main class="main">
@@ -1568,6 +1761,40 @@
                 <div class="box"><h3>⚠️ Atención requerida</h3><p class="summary-note" id="bajoCount"></p><div id="bajoList"></div></div>
                 <div class="box"><h3>🛒 Ventas recientes</h3><div id="ventasResumen"></div></div>
             </div>
+            <div class="box" id="sagaDashboardBox">
+                <div class="sale-console-heading">
+                    <div><h3>Consola Saga</h3><p class="summary-note">Última ejecución: inventario, pasarela de pagos, facturación y compensaciones.</p></div>
+                    <button class="btn2" type="button" onclick="show('ventas')">Nueva simulación</button>
+                </div>
+                <pre id="sagaDashboardConsole" class="sale-event-console" role="log" aria-live="polite">PROCEDIMIENTO SAGA
+T1 · Inventario: valida disponibilidad y reserva el stock.
+T2 · Pasarela de pagos (mock): procesa el cobro y devuelve aprobado o rechazado.
+T3 · Facturación y despacho: completa el pedido cuando el pago fue aprobado.
+Compensaciones: C1 restaura el stock; C2 reembolsa si ya se había cobrado.
+
+Ejecuta una simulación desde Ventas para ver el resultado real de cada etapa.</pre>
+                <div id="paymentCircuitPanel" class="payment-circuit" role="status" aria-live="polite">
+                    <div class="sale-console-heading"><strong>Circuit Breaker · Pasarela mock</strong><span id="paymentCircuitBadge" class="circuit-badge" data-state="unknown">Consultando…</span></div>
+                    <p id="paymentCircuitDetails" class="summary-note">Leyendo estado del backend…</p>
+                    <p id="paymentCircuitTrace" class="circuit-trace">traceparent: pendiente</p>
+                </div>
+                <p id="sagaDashboardRunBy" class="saga-run-by" hidden></p>
+                <ol id="sagaDashboardTimeline" class="saga-timeline" aria-label="Etapas T1, T2 y T3 de la Saga" aria-live="polite">
+                    <li data-status="not-run"><div class="saga-step-heading"><strong>T1 · Inventario y reserva</strong><span class="saga-step-status">Esperando simulación</span></div><p class="saga-step-detail">Se valida disponibilidad y se reserva el stock del producto.</p></li>
+                    <li data-status="not-run"><div class="saga-step-heading"><strong>T2 · Pasarela de pagos (mock)</strong><span class="saga-step-status">Esperando simulación</span></div><p class="saga-step-detail">La pasarela de prueba procesa el cobro y confirma o rechaza el pago.</p></li>
+                    <li data-status="not-run"><div class="saga-step-heading"><strong>T3 · Facturación y despacho</strong><span class="saga-step-status">Esperando simulación</span></div><p class="saga-step-detail">Se completa el pedido si la pasarela aprobó el pago.</p></li>
+                    <li data-status="not-run"><div class="saga-step-heading"><strong>C2 · Reembolso</strong><span class="saga-step-status">Condicional</span></div><p class="saga-step-detail">Se ejecuta si el cobro se confirmó y después falla otro paso.</p></li>
+                    <li data-status="not-run"><div class="saga-step-heading"><strong>C1 · Restauración de inventario</strong><span class="saga-step-status">Condicional</span></div><p class="saga-step-detail">Restaura el stock reservado cuando la Saga debe compensarse.</p></li>
+                </ol>
+            </div>
+            <div class="box" id="businessEventBox">
+                <div class="sale-console-heading">
+                    <div><h3>Eventos y procesos publicados</h3><p class="summary-note">Actividad reciente del outbox; los confirmados ya fueron entregados a Kafka.</p></div>
+                    <button class="btn2" type="button" onclick="cargarEventosProceso()">Actualizar</button>
+                </div>
+                <p id="processEventsStatus" class="summary-note" role="status" aria-live="polite">Cargando eventos…</p>
+                <ul id="processEvents" class="process-events" aria-live="polite"></ul>
+            </div>
             <div class="box"><h3>Accesos rápidos</h3><br><button class="btn2" onclick="show('portafolio')">Explorar portafolio →</button> <button id="quickInventoryBtn" class="btn2" onclick="show('inventario')">Revisar inventario →</button> <button class="btn" onclick="show('ventas')">Registrar venta →</button></div>
         </div>
 
@@ -1583,21 +1810,24 @@
             </div>
             <div class="box">
                 <div class="sale-console-heading">
-                    <div><h3>Consola de venta y Saga</h3><p class="summary-note">La venta muestra su CloudEvent; el flujo Saga muestra T1–T3 y C1 si ocurre compensación.</p></div>
+                    <div><h3>Consola de venta y Saga</h3><p class="summary-note">La venta tradicional muestra su CloudEvent. La simulación Saga indica cada etapa y declara si ejecutó compensaciones C1/C2.</p></div>
                     <button class="btn2" type="button" onclick="limpiarConsolaVenta()">Limpiar</button>
                 </div>
                 <pre id="saleEventConsole" class="sale-event-console" role="log" aria-live="polite">Consola lista. Registra una venta o ejecuta un pedido Saga.</pre>
-                <details class="saga-runner">
-                    <summary>Procesar un pedido separado con Saga (T1 → T3)</summary>
-                    <p class="summary-note">Este flujo crea un pedido del catálogo Saga; es independiente del historial de ventas tradicional.</p>
+                <details class="saga-runner" open>
+                    <summary>Simular una venta con Saga (T1 → T3)</summary>
+                    <p class="summary-note">La simulación ejecuta el flujo real del pedido y descuenta stock; el pago usa la pasarela de prueba. Si marcas el rechazo, se verá la compensación y la restauración del stock.</p>
                     <div class="saga-runner-fields">
                         <div><label for="sagaProducto">Producto del catálogo Saga</label><select id="sagaProducto"></select></div>
                         <div><label for="sagaCantidad">Cantidad</label><input id="sagaCantidad" type="number" value="1" min="1"></div>
                         <div><label for="sagaDireccion">Dirección del pedido</label><input id="sagaDireccion" value="Punto de venta" maxlength="160"></div>
                         <label id="sagaSimulateFailureControl" class="saga-simulate-failure hidden"><input id="sagaSimulateFailure" type="checkbox"> Simular rechazo de pago para ver C1 (prueba)</label>
                     </div>
-                    <button id="sagaSubmit" class="btn" type="button" onclick="procesarPedidoSaga()" disabled>Procesar pedido Saga</button>
+                    <button id="sagaSubmit" class="btn" type="button" onclick="procesarPedidoSaga()" disabled>Simular venta con Saga</button>
                     <p id="sagaMessage" role="status"></p>
+                    <p id="sagaResult" class="saga-result" role="status" aria-live="polite" hidden></p>
+                    <p id="sagaRunBy" class="saga-run-by" hidden></p>
+                    <ol id="sagaTimeline" class="saga-timeline" aria-label="Etapas de la Saga" aria-live="polite" hidden></ol>
                 </details>
             </div>
         </div>
@@ -1616,7 +1846,7 @@
                     <div><label for="newUserName">Nombre</label><input id="newUserName" maxlength="120" required></div>
                     <div><label for="newUserEmail">Correo electrónico</label><input id="newUserEmail" type="email" maxlength="254" required></div>
                     <div><label for="newUserPassword">Contraseña inicial</label><input id="newUserPassword" type="password" minlength="12" autocomplete="new-password" required></div>
-                    <div><label for="newUserRole">Rol</label><select id="newUserRole"><option value="Vendedor">Vendedor</option><option value="Cliente">Cliente</option><option value="Administradora">Administrador</option></select></div>
+                    <div><label for="newUserRole">Rol</label><select id="newUserRole"><option value="Vendedor">Vendedor</option><option value="Cliente">Cliente</option><option value="Administrador">Administrador</option></select></div>
                     <button class="btn" type="submit">Crear usuario</button>
                 </form>
                 <p id="userMessage" role="status"></p>
@@ -1631,6 +1861,8 @@ let productos=[];
     let sagaProductos=[];
 let usuarioActual=null;
 let outboxRefreshTimer=null;
+let processEventsRefreshTimer=null;
+let circuitRefreshTimer=null;
 const dashboard=document.getElementById('dashboard');
 const themeToggle=document.getElementById('themeToggle');
 const themeIcon=document.getElementById('themeIcon');
@@ -1705,7 +1937,8 @@ function configurarInterfazRol(usuario){
       button.innerText=usuario.rol==='Cliente'?button.dataset.clientLabel:button.dataset.defaultLabel;
     }
   });
-  const esAdministrador=usuario.rol==='Administradora';
+  const esAdministrador=usuario.rol==='Administrador';
+  const puedeVerProcesos=esAdministrador||usuario.rol==='Vendedor';
   const esCliente=usuario.rol==='Cliente';
   document.getElementById('outboxStatus').classList.toggle('hidden',!esAdministrador);
   document.getElementById('sagaSimulateFailureControl').classList.toggle('hidden',!esAdministrador);
@@ -1713,6 +1946,14 @@ function configurarInterfazRol(usuario){
   outboxRefreshTimer=esAdministrador
     ?setInterval(cargarEstadoOutbox,5000)
     :null;
+  if(processEventsRefreshTimer)clearInterval(processEventsRefreshTimer);
+  processEventsRefreshTimer=puedeVerProcesos
+    ?setInterval(cargarEventosProceso,5000)
+    :null;
+  if(circuitRefreshTimer)clearInterval(circuitRefreshTimer);
+  circuitRefreshTimer=puedeVerProcesos?setInterval(cargarEstadoCircuito,1200):null;
+  document.getElementById('businessEventBox').classList.toggle('hidden',!puedeVerProcesos);
+  if(puedeVerProcesos)cargarEventosProceso();
   document.getElementById('quickInventoryBtn').classList.toggle('hidden',!esAdministrador);
   document.getElementById('ventaTitulo').innerText=esCliente?'Comprar productos':'Registrar venta';
   document.getElementById('ventaSubmit').innerText=esCliente?'Realizar compra':'Confirmar venta ✅';
@@ -1759,8 +2000,35 @@ async function apiJson(url,options,acceptedStatuses=[]){
     throw new Error('Sesión expirada');
   }
   const accepted=acceptedStatuses.includes(response.status);
-  if((!response.ok||data.ok===false)&&!accepted)throw new Error(data.error||'No fue posible completar la solicitud.');
+  if((!response.ok||data.ok===false)&&!accepted){
+    const error=new Error(data.error||'No fue posible completar la solicitud.');
+    error.status=response.status;
+    error.data=data;
+    throw error;
+  }
+  data._traceparent=response.headers.get('traceparent')||'';
   return data;
+}
+async function cargarEstadoCircuito(){
+  const badge=document.getElementById('paymentCircuitBadge');
+  const details=document.getElementById('paymentCircuitDetails');
+  const trace=document.getElementById('paymentCircuitTrace');
+  if(!badge||!details||!trace)return;
+  try{
+    const response=await apiJson('/api/circuit-breaker');
+    const circuit=response.circuit;
+    const names={CLOSED:'CERRADO · operativo',OPEN:'ABIERTO · bloqueando cobros','HALF-OPEN':'HALF-OPEN · prueba permitida'};
+    badge.textContent=names[circuit.state]||circuit.state;
+    badge.dataset.state=circuit.state;
+    const cooling=circuit.state==='OPEN'?` · recuperación en ${circuit.remaining_seconds}s`:'';
+    const probing=circuit.probe_in_flight?' · prueba en curso':'';
+    details.textContent=`Fallos consecutivos: ${circuit.consecutive_failures}/${circuit.failure_threshold}${cooling}${probing} · pausa mock: ${circuit.delay_ms} ms`;
+    trace.textContent=`traceparent: ${response._traceparent||'no informado'}`;
+  }catch(error){
+    badge.textContent='No disponible';
+    badge.dataset.state='unknown';
+    details.textContent=error.message;
+  }
 }
 function show(id,btn){
   document.querySelectorAll('[id^="sec-"]').forEach(e=>e.classList.add('hidden'));
@@ -1790,7 +2058,7 @@ async function cargarTodo(){
 
   productos=await apiJson('/api/productos');
   document.getElementById('listaProductos').innerHTML=`<table><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th></tr>${productos.map(p=>`<tr><td><b>${p.nombre}</b></td><td>${p.categoria}</td><td>$${p.precio.toLocaleString()}</td><td>${p.stock}</td></tr>`).join('')}</table>`;
-  if(usuarioActual.rol==='Administradora'){
+  if(usuarioActual.rol==='Administrador'){
     document.getElementById('listaInventario').innerHTML=productos.map(p=>`<div class="inventory-row"><strong>${p.nombre}</strong><input type="number" value="${p.stock}" id="stock-${p.id}"><button class="btn2" onclick="ajustar(${p.id})">Guardar</button></div>`).join('');
   }else{
     document.getElementById('listaInventario').innerText='Solo el administrador puede actualizar el stock.';
@@ -1806,13 +2074,13 @@ async function cargarTodo(){
   let pedidos=await apiJson('/api/pedidos');
   document.getElementById('listaPedidos').innerHTML=`<table><tr><th>Proveedor</th><th>Producto</th><th>Cant</th><th>Estado</th></tr>${pedidos.map(p=>`<tr><td>${p.proveedor}</td><td>${p.producto}</td><td>${p.cantidad}</td><td><span class="badge warn">${p.estado}</span></td></tr>`).join('')}</table>`;
 
-  if(usuarioActual.rol==='Administradora')await cargarUsuarios();
+  if(usuarioActual.rol==='Administrador')await cargarUsuarios();
 
   let totalInv=productos.reduce((a,p)=>a+p.precio*p.stock,0);
   document.getElementById('repTabla').innerHTML=productos.map(p=>`<tr><td>${p.nombre}</td><td>$${p.precio.toLocaleString()}</td><td>${p.stock}</td><td>$${(p.precio*p.stock).toLocaleString()}</td></tr>`).join('');
   document.getElementById('repTotal').innerText='Valor total del inventario: $'+totalInv.toLocaleString('es-CO');
   document.getElementById('repTexto').innerText=`Tienes ${productos.length} productos y ${res.stock} unidades en total.`;
-  if(usuarioActual.rol==='Administradora')await cargarEstadoOutbox();
+  if(usuarioActual.rol==='Administrador')await cargarEstadoOutbox();
 }
 async function cargarEstadoOutbox(){
   const status=document.getElementById('outboxStatus');
@@ -1840,6 +2108,184 @@ async function cargarEstadoOutbox(){
     message.textContent='No fue posible consultar los eventos pendientes: '+error.message;
     list.replaceChildren();
     status.classList.remove('hidden');
+  }
+}
+function nombreProcesoEvento(event){
+  const names={
+    'bina.la_colmena.autenticacion.login':'Inicio de sesión',
+    'bina.la_colmena.autenticacion.logout':'Cierre de sesión',
+    'bina.la_colmena.venta.registrada':'Venta registrada',
+    'bina.la_colmena.inventario.actualizado':'Ajuste de inventario',
+    'bina.la_colmena.inventario.reservado':'Saga T1 · Stock reservado',
+    'bina.la_colmena.pedido.creado':'Saga · Pedido creado',
+    'bina.la_colmena.pedido.pagado':'Saga T2 · Pasarela aprobó el pago',
+    'bina.la_colmena.pago.rechazado':'Saga T2 · Pasarela rechazó el pago',
+    'bina.la_colmena.pedido.completado':'Saga T3 · Factura y despacho',
+    'bina.la_colmena.pedido.compensando':'Saga · Compensación iniciada',
+    'bina.la_colmena.pago.reembolsado':'Saga C2 · Reembolso confirmado',
+    'bina.la_colmena.inventario.restaurado':'Saga C1 · Stock restaurado',
+    'bina.la_colmena.pedido.compensado':'Saga · Pedido compensado',
+    'bina.la_colmena.usuario.creado':'Usuario creado',
+    'bina.la_colmena.usuario.eliminado':'Usuario eliminado'
+  };
+  return names[event.event_type]||event.event_type;
+}
+function detalleProcesoEvento(data){
+  const details=[];
+  if(data.sale_id)details.push(`Venta #${data.sale_id}`);
+  if(data.order_id)details.push(`Pedido ${data.order_id}`);
+  if(data.product_name)details.push(data.product_name);
+  if(data.product_code)details.push(`Producto ${data.product_code}`);
+  if(Number.isInteger(data.quantity))details.push(`Cantidad ${data.quantity}`);
+  if(Number.isFinite(Number(data.total)))details.push(`Total $${Number(data.total).toLocaleString('es-CO')}`);
+  if(data.previous_stock!==undefined&&data.stock!==undefined)details.push(`Stock ${data.previous_stock} → ${data.stock}`);
+  if(data.saga_status)details.push(`Saga ${data.saga_status}`);
+  if(data.action)details.push(`Acción ${data.action}`);
+  if(data.error)details.push(`Detalle: ${data.error}`);
+  return details.join(' · ')||'Evento de proceso registrado.';
+}
+function cargarUltimaSagaPersistida(events){
+  const sagaTypes=new Set([
+    'bina.la_colmena.inventario.reservado',
+    'bina.la_colmena.pedido.creado',
+    'bina.la_colmena.pedido.pagado',
+    'bina.la_colmena.pago.rechazado',
+    'bina.la_colmena.pedido.completado',
+    'bina.la_colmena.pedido.compensando',
+    'bina.la_colmena.pago.reembolsado',
+    'bina.la_colmena.inventario.restaurado',
+    'bina.la_colmena.pedido.compensado'
+  ]);
+  const groups=new Map();
+  events.filter(event=>sagaTypes.has(event.event_type)).forEach(event=>{
+    const key=event.aggregate_id||event.data?.order_id;
+    if(!key)return;
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(event);
+  });
+  const latest=[...groups.values()]
+    .map(group=>group.sort((a,b)=>a.id-b.id))
+    .sort((a,b)=>b[b.length-1].id-a[a.length-1].id)[0];
+  if(!latest)return;
+
+  const find=type=>latest.find(event=>event.event_type===type);
+  const reserved=find('bina.la_colmena.inventario.reservado');
+  const created=find('bina.la_colmena.pedido.creado');
+  const paid=find('bina.la_colmena.pedido.pagado');
+  const rejected=find('bina.la_colmena.pago.rechazado');
+  const completed=find('bina.la_colmena.pedido.completado');
+  const compensating=find('bina.la_colmena.pedido.compensando');
+  const refunded=find('bina.la_colmena.pago.reembolsado');
+  const restored=find('bina.la_colmena.inventario.restaurado');
+  const compensated=find('bina.la_colmena.pedido.compensado');
+  const finalEvent=latest[latest.length-1];
+  const finalData=finalEvent.data||{};
+  const orderId=finalData.order_id||latest[0].data?.order_id||latest[0].aggregate_id;
+  let sagaStatus=finalData.saga_status;
+  if(!sagaStatus){
+    sagaStatus=compensated?'COMPENSATED':compensating?'COMPENSATING':paid||completed?'CONFIRMED':'PENDING';
+  }
+  const orderState=compensated?'COMPENSADO':completed?'COMPLETADO':paid?'PAGADO':'RESERVADO_SEMANTIC_LOCK';
+  const log=[];
+  if(reserved||created){
+    const data=(reserved||created).data||{};
+    const itemDetails=reserved
+      ?`${data.quantity} unidad(es) de ${data.product_code}; stock ${data.previous_stock} → ${data.stock}.`
+      :'Pedido creado y stock reservado.';
+    log.push(`T1 [Inventario]: Pedido ${orderId}. ${itemDetails}`);
+  }
+  if(rejected)log.push('T2 [Pasarela de pagos]: Pago rechazado; no se realizó el débito.');
+  else if(paid)log.push(`T2 [Pagos]: Débito de $${Number(paid.data?.total||0).toLocaleString('es-CO')} confirmado por la pasarela.`);
+  if(completed)log.push('T3 [Facturación]: Factura y despacho completados.');
+  if(refunded)log.push('C2 [Compensación de pago]: Reembolso confirmado.');
+  if(restored||compensated)log.push('C1 [Compensación de inventario]: Stock restaurado; Saga COMPENSATED.');
+  const result={
+    ok:Boolean(completed&&!compensating&&!compensated),
+    pedido:{id:orderId,estado:orderState,saga_status:sagaStatus},
+    log
+  };
+  const actorEvent=latest.find(event=>event.data?.actor);
+  const actor=actorEvent?.data?.actor||{};
+  const historyLines=latest.map(event=>{
+    const when=new Date(Number(event.timestamp)*1000).toLocaleTimeString('es-CO');
+    return `[${when}] ${nombreProcesoEvento(event)} · ${detalleProcesoEvento(event.data||{})}`;
+  });
+  escribirConsolaSaga([
+    `Procedimiento Saga recuperado del outbox · Pedido ${orderId}`,
+    ...historyLines,
+    `[ESTADO] ${orderState} · Saga ${sagaStatus}`,
+    `[COMPENSACIÓN] ${compensated?'Sí, completada':compensating?'Iniciada o pendiente':completed?'No fue necesaria':'No registrada'}`
+  ].join('\n'));
+  renderSagaTimeline(result,'',false,actor);
+}
+async function cargarEventosProceso(){
+  const list=document.getElementById('processEvents');
+  const status=document.getElementById('processEventsStatus');
+  try{
+    const response=await apiJson('/api/eventos');
+    list.replaceChildren();
+    if(!response.events.length){
+      status.textContent='Aún no hay procesos en el outbox. Inicia sesión o realiza una venta para generar eventos.';
+      document.getElementById('sagaDashboardConsole').textContent=[
+        'PROCEDIMIENTO SAGA · SIN EJECUCIONES REGISTRADAS',
+        'T1 · Inventario: valida disponibilidad y reserva el stock.',
+        'T2 · Pasarela de pagos (mock): procesa el cobro y responde APROBADO o RECHAZADO.',
+        'T3 · Facturación y despacho: se ejecuta después de un pago aprobado.',
+        'C2 · Reembolso: devuelve el pago si ya hubo débito y luego falla otro paso.',
+        'C1 · Inventario: restaura el stock reservado cuando la Saga falla.',
+        '',
+        'Las tarjetas muestran el flujo. Usa “Nueva simulación” para ver resultados reales y saber si hubo compensación.'
+      ].join('\n');
+      return;
+    }
+    status.textContent=`Mostrando ${response.events.length} eventos recientes. Actualización automática cada 5 segundos.`;
+    cargarUltimaSagaPersistida(response.events);
+    response.events.forEach(event=>{
+      const data=event.data||{};
+      const actor=data.actor;
+      const item=document.createElement('li');
+      item.className='process-event';
+      const heading=document.createElement('div');
+      heading.className='process-event-heading';
+      const title=document.createElement('strong');
+      title.textContent=nombreProcesoEvento(event);
+      const badge=document.createElement('span');
+      badge.className='process-event-status';
+      const hasError=event.status==='PENDING'&&Boolean(event.last_error);
+      badge.dataset.status=hasError?'ERROR':event.status;
+      badge.textContent=hasError?'Error en Kafka':event.status==='PROCESSED'?'Publicado en Kafka':'Pendiente de publicar';
+      heading.append(title,badge);
+      const actorLine=document.createElement('p');
+      actorLine.className='process-event-actor';
+      actorLine.textContent=actor
+        ?`Usuario: ${actor.name||'Sin nombre'} · ${actor.role||'Rol no disponible'} · ID ${actor.user_id??'—'}`
+        :'Usuario no identificado (evento anterior a la auditoría).';
+      const detail=document.createElement('p');
+      detail.className='process-event-detail';
+      detail.textContent=detalleProcesoEvento(data);
+      const time=document.createElement('p');
+      time.className='process-event-time';
+      const occurredAt=new Date(Number(event.timestamp)*1000);
+      time.textContent=`${occurredAt.toLocaleString('es-CO')} · Event ID ${event.event_id||'—'}`;
+      item.append(heading,actorLine,detail,time);
+      if(event.last_error){
+        const error=document.createElement('p');
+        error.className='process-event-detail';
+        error.textContent=`Error: ${event.last_error}`;
+        item.appendChild(error);
+      }
+      const disclosure=document.createElement('details');
+      const summary=document.createElement('summary');
+      summary.textContent='Ver CloudEvent JSON';
+      const payload=document.createElement('pre');
+      payload.textContent=JSON.stringify(event.cloud_event,null,2);
+      disclosure.append(summary,payload);
+      item.appendChild(disclosure);
+      list.appendChild(item);
+    });
+  }catch(error){
+    status.textContent='No fue posible cargar los procesos: '+error.message;
+    list.replaceChildren();
   }
 }
 async function cargarCatalogoSaga(){
@@ -1994,8 +2440,93 @@ function escribirConsolaVenta(content){
   consoleOutput.textContent=content;
   consoleOutput.scrollTop=consoleOutput.scrollHeight;
 }
+function escribirConsolaSaga(content){
+  escribirConsolaVenta(content);
+  const dashboardConsole=document.getElementById('sagaDashboardConsole');
+  dashboardConsole.textContent=content;
+  dashboardConsole.scrollTop=dashboardConsole.scrollHeight;
+}
 function limpiarConsolaVenta(){
-  escribirConsolaVenta('Consola limpia. Registra una venta o ejecuta un pedido Saga.');
+  const message='Consola limpia. Registra una venta o ejecuta un pedido Saga.';
+  escribirConsolaVenta(message);
+  document.getElementById('sagaDashboardConsole').textContent=message;
+  ['sagaRunBy','sagaDashboardRunBy','sagaResult','sagaTimeline','sagaDashboardTimeline'].forEach(id=>{
+    const element=document.getElementById(id);
+    element.hidden=true;
+    if(element.tagName==='OL')element.replaceChildren();
+  });
+}
+function renderSagaTimeline(result,errorMessage='',unknown=false,actorOverride=null){
+  const log=Array.isArray(result.log)?result.log:[];
+  const lineFor=prefix=>log.find(line=>line.startsWith(prefix));
+  const t1=lineFor('T1 [Inventario]');
+  const t2Success=lineFor('T2 [Pagos]');
+  const t2Rejected=lineFor('T2 [Pasarela de pagos]');
+  const t3=lineFor('T3 [Facturación]');
+  const c2=lineFor('C2 [Compensación de pago]');
+  const c1=lineFor('C1 [Compensación de inventario]');
+  const sagaStatus=result.pedido?.saga_status;
+  const noOrder=!result.pedido&&!unknown;
+  const compensationPending=sagaStatus==='COMPENSATING'||Boolean(result.error_compensacion);
+  const stages=[
+    {
+      code:'T1',title:'Inventario · reserva de stock',
+      status:t1?'completed':unknown?'pending':noOrder?'blocked':'not-run',
+      detail:t1|| (unknown?'No se pudo confirmar si el stock quedó reservado.':noOrder?(errorMessage||'El pedido no se creó.'):'No se ejecutó esta etapa.')
+    },
+    {
+      code:'T2',title:'Pasarela de pagos · prueba',
+      status:t2Rejected?'rejected':t2Success?'completed':unknown?'pending':'not-run',
+      detail:t2Rejected||t2Success||(unknown?'No se pudo confirmar la respuesta de la pasarela.':noOrder?'No se llegó a la pasarela.':'No se ejecutó porque la Saga terminó antes.')
+    },
+    {
+      code:'T3',title:'Facturación y despacho',
+      status:t3?'completed':unknown?'pending':'not-run',
+      detail:t3||(unknown?'No se pudo confirmar el resultado de esta etapa.':'No se ejecutó porque la Saga terminó antes.')
+    },
+    {
+      code:'C2',title:'Compensación de pago · reembolso',
+      status:c2?'completed':unknown||compensationPending&&t2Success?'pending':'not-run',
+      detail:c2||(unknown?'No se pudo confirmar si hubo un cobro o un reembolso.':compensationPending&&t2Success?(result.error_compensacion||'Reembolso iniciado, falta confirmación.'):(t2Success?'No requerida: no hubo fallo posterior al cobro.':'No requerida: la pasarela no confirmó un cobro.'))
+    },
+    {
+      code:'C1',title:'Compensación de inventario · restaurar stock',
+      status:c1||sagaStatus==='COMPENSATED'?'completed':compensationPending?'pending':unknown?'pending':noOrder?'not-run':'not-run',
+      detail:c1||(sagaStatus==='COMPENSATED'?'El pedido ya figura compensado.':compensationPending?(result.error_compensacion||'Restauración de stock iniciada, falta confirmación.'):(result.ok?'No requerida: la venta terminó correctamente.':noOrder?'No aplica: no se creó el pedido.':'No se confirmó una compensación.'))
+    }
+  ];
+  const labels={completed:'Completada',rejected:'Rechazada',pending:'Pendiente',blocked:'Detenida', 'not-run':'No ejecutada'};
+  const actor=actorOverride===null?usuarioActual:actorOverride;
+  const actorName=actor?.name||actor?.nombre||(actorOverride===null?'Usuario actual':'Usuario no identificado');
+  const actorRole=actor?.role||actor?.rol||'Rol no disponible';
+  const actorId=actor?.user_id?` · ID ${actor.user_id}`:'';
+  const orderId=result.pedido?.id?` · Pedido ${result.pedido.id}`:'';
+  const actorText=`Ejecución solicitada por ${actorName} · ${actorRole}${actorId}${orderId}`;
+  [['sagaTimeline','sagaRunBy'],['sagaDashboardTimeline','sagaDashboardRunBy']].forEach(([listId,actorId])=>{
+    const list=document.getElementById(listId);
+    list.replaceChildren();
+    stages.forEach(stage=>{
+      const item=document.createElement('li');
+      item.dataset.status=stage.status;
+      const heading=document.createElement('div');
+      heading.className='saga-step-heading';
+      const title=document.createElement('strong');
+      title.textContent=`${stage.code} · ${stage.title}`;
+      const status=document.createElement('span');
+      status.className='saga-step-status';
+      status.textContent=labels[stage.status];
+      heading.append(title,status);
+      const detail=document.createElement('p');
+      detail.className='saga-step-detail';
+      detail.textContent=stage.detail;
+      item.append(heading,detail);
+      list.appendChild(item);
+    });
+    const actorLabel=document.getElementById(actorId);
+    actorLabel.textContent=actorText;
+    actorLabel.hidden=false;
+    list.hidden=false;
+  });
 }
 async function procesarPedidoSaga(){
   const product=sagaProductos.find(item=>item.codigo===document.getElementById('sagaProducto').value);
@@ -2015,13 +2546,26 @@ async function procesarPedidoSaga(){
     message.textContent='La dirección del pedido es obligatoria.';
     return;
   }
+  const resultSummary=document.getElementById('sagaResult');
+  resultSummary.hidden=true;
+  resultSummary.textContent='';
+  resultSummary.dataset.outcome='';
+  document.getElementById('sagaRunBy').hidden=true;
+  document.getElementById('sagaDashboardRunBy').hidden=true;
+  const timeline=document.getElementById('sagaTimeline');
+  timeline.hidden=true;
+  timeline.replaceChildren();
+  const dashboardTimeline=document.getElementById('sagaDashboardTimeline');
+  dashboardTimeline.hidden=true;
+  dashboardTimeline.replaceChildren();
   const payload={
     direccion:address,
     items:[{codigo:product.codigo,cantidad:quantity}],
     simular_falla_pago:document.getElementById('sagaSimulateFailure').checked
   };
   submit.disabled=true;
-  message.textContent='Ejecutando T1, T2 y T3…';
+  message.textContent='Ejecutando la Saga: reserva de inventario (T1), pago (T2) y facturación (T3)…';
+  escribirConsolaSaga('Saga en curso: T1 reserva de inventario → T2 pasarela de pagos → T3 facturación y despacho…');
   try{
     const result=await apiJson('/api/ordenes',{
       method:'POST',
@@ -2031,19 +2575,65 @@ async function procesarPedidoSaga(){
       },
       body:JSON.stringify(payload)
     },[409]);
+    const sagaStatus=result.pedido?.saga_status||'SIN PEDIDO';
+    const compensationEvents=(result.log||[]).filter(line=>/^C[12] /.test(line));
+    let compensationText;
+    let outcome;
+    if(sagaStatus==='COMPENSATED'){
+      compensationText='SÍ: completada; revisa C1/C2 para ver las acciones aplicadas.';
+      outcome='compensated';
+    }else if(sagaStatus==='COMPENSATING'||result.error_compensacion){
+      compensationText='SÍ: iniciada, pero quedó pendiente o incompleta. '+(result.error_compensacion||'Requiere revisión.');
+      outcome='pending';
+    }else if(result.ok){
+      compensationText='NO: la venta terminó correctamente y no hizo falta revertir operaciones.';
+      outcome='success';
+    }else if(!result.pedido){
+      compensationText='NO APLICA: la Saga no creó un pedido, así que no hubo acciones que compensar.';
+      outcome='pending';
+    }else{
+      compensationText='NO completada: la Saga terminó con error y no confirmó el estado COMPENSATED.';
+      outcome='pending';
+    }
+    resultSummary.textContent=`Compensación: ${compensationText}`;
+    resultSummary.dataset.outcome=outcome;
+    resultSummary.hidden=false;
+    renderSagaTimeline(result);
     const lines=[
       `[${new Date().toLocaleTimeString('es-CO')}] Traza Saga ${result.pedido?.id||''}`,
       ...(Array.isArray(result.log)?result.log:[]),
       result.pedido?`[ESTADO] Pedido ${result.pedido.id} · ${result.pedido.estado} · Saga ${result.pedido.saga_status}`:'',
+      `[COMPENSACIÓN] ${compensationText}`,
+      compensationEvents.length?`[ACCIONES DE COMPENSACIÓN] ${compensationEvents.join(' | ')}`:'',
       result.error_compensacion?`[ERROR C2/C1] ${result.error_compensacion}`:''
     ].filter(Boolean);
-    escribirConsolaVenta(lines.join('\n'));
+    escribirConsolaSaga(lines.join('\n'));
     message.textContent=result.ok
-      ?`Saga completada para el pedido ${result.pedido.id}.`
-      :`Saga finalizada con compensación o error para ${result.pedido?.id||'el pedido'}; revisa la consola.`;
+      ?`Saga completada para el pedido ${result.pedido.id}. ${sagaStatus}.`
+      :`Saga finalizada para ${result.pedido?.id||'el pedido'} con estado ${sagaStatus}; consulta el detalle de compensación.`;
   }catch(error){
-    message.textContent='No fue posible procesar el pedido Saga: '+error.message;
-    escribirConsolaVenta(`[ERROR DE SAGA]\n${error.message}`);
+    const failure=error.data||{};
+    const failureLog=Array.isArray(failure.log)?failure.log:[];
+    if(error.status&&!failure.pedido){
+      const compensationText='NO APLICA: el pedido no se creó; no hubo cambios de Saga que compensar.';
+      message.textContent='Saga detenida antes de crear el pedido: '+error.message;
+      resultSummary.textContent=`Compensación: ${compensationText}`;
+      resultSummary.dataset.outcome='not-applicable';
+      escribirConsolaSaga([
+        `[${new Date().toLocaleTimeString('es-CO')}] Simulación Saga detenida`,
+        ...failureLog,
+        `[ERROR] ${error.message}`,
+        `[COMPENSACIÓN] ${compensationText}`
+      ].join('\n'));
+      renderSagaTimeline(failure,error.message);
+    }else{
+      message.textContent='No fue posible procesar el pedido Saga: '+error.message;
+      resultSummary.textContent='No se pudo confirmar el resultado de la Saga; verifica el estado del pedido antes de reintentar.';
+      resultSummary.dataset.outcome='pending';
+      escribirConsolaSaga(`[ERROR DE SAGA]\n${error.message}`);
+      renderSagaTimeline({},error.message,true);
+    }
+    resultSummary.hidden=false;
   }finally{
     submit.disabled=sagaProductos.length===0;
   }
