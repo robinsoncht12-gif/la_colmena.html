@@ -104,6 +104,67 @@ class TestAutenticacionSegura(unittest.TestCase):
         self.assertTrue(verify_password("UnaClaveSegura2026!", first_hash))
         self.assertFalse(verify_password("otra-clave", first_hash))
 
+    def test_api_outbox_muestra_fallos_solo_a_administradores(self):
+        with tempfile.TemporaryDirectory() as test_dir:
+            self._start_test_server(os.path.join(test_dir, "outbox_api.db"))
+            status, _, headers = self._request(
+                "POST",
+                "/api/login",
+                {"email": "demo@lacolmena.co", "password": "LocalAdminPass2026!"},
+            )
+            self.assertEqual(status, 200)
+            admin_cookie = headers["Set-Cookie"].split(";", 1)[0]
+
+            event = crear_cloudevent(
+                "bina.la_colmena.venta.registrada",
+                {"sale_id": 25},
+            )
+            outbox = SQLiteOutboxRepository(self.db_path)
+            event_id = outbox.registrar_evento("25", event.to_dict())
+            error = (
+                'KafkaException(KafkaError{code=_MSG_TIMED_OUT,val=-192,'
+                'str="Local: Message timed out"})'
+            )
+            outbox.registrar_error(event_id, error)
+
+            status, result, _ = self._request(
+                "GET", "/api/outbox", cookie=admin_cookie
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(len(result["events"]), 1)
+            self.assertEqual(result["events"][0]["event_id"], event.id)
+            self.assertEqual(result["events"][0]["attempts"], 1)
+            self.assertEqual(result["events"][0]["last_error"], error)
+
+            status, _, _ = self._request("GET", "/api/outbox")
+            self.assertEqual(status, 401)
+
+            status, _, _ = self._request(
+                "POST",
+                "/api/usuarios",
+                {
+                    "nombre": "Vendedora",
+                    "email": "seller@example.com",
+                    "password": "SellerStrongPass2026!",
+                },
+                cookie=admin_cookie,
+            )
+            self.assertEqual(status, 200)
+            status, _, seller_headers = self._request(
+                "POST",
+                "/api/login",
+                {
+                    "email": "seller@example.com",
+                    "password": "SellerStrongPass2026!",
+                },
+            )
+            self.assertEqual(status, 200)
+            seller_cookie = seller_headers["Set-Cookie"].split(";", 1)[0]
+            status, _, _ = self._request(
+                "GET", "/api/outbox", cookie=seller_cookie
+            )
+            self.assertEqual(status, 403)
+
     def test_login_actualiza_hash_pbkdf2_a_argon2id(self):
         with tempfile.TemporaryDirectory() as test_dir:
             self._start_test_server(os.path.join(test_dir, "legacy_hash.db"))
@@ -378,6 +439,15 @@ class TestAutenticacionSegura(unittest.TestCase):
                 set(client_products[0]),
                 {"id", "nombre", "categoria", "precio"},
             )
+            status, saga_products, _ = self._request(
+                "GET", "/api/catalogo-saga", cookie=client_cookie
+            )
+            self.assertEqual(status, 200)
+            self.assertTrue(saga_products)
+            self.assertEqual(
+                set(saga_products[0]),
+                {"codigo", "nombre", "categoria", "precio"},
+            )
             status, _, _ = self._request(
                 "GET", "/api/resumen", cookie=client_cookie
             )
@@ -394,6 +464,11 @@ class TestAutenticacionSegura(unittest.TestCase):
             )
             self.assertEqual(status, 200)
             self.assertEqual(purchase["total"], 10000)
+            self.assertEqual(
+                purchase["evento"]["type"],
+                "bina.la_colmena.venta.registrada",
+            )
+            self.assertEqual(purchase["evento"]["data"]["quantity"], 2)
             with closing(sqlite3.connect(self.db_path)) as connection:
                 buyer, stock = connection.execute(
                     """
@@ -525,6 +600,10 @@ class TestAutenticacionSegura(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertTrue(first["ok"])
             self.assertEqual(first["pedido"]["saga_status"], "CONFIRMED")
+            self.assertEqual(len(first["log"]), 3)
+            self.assertTrue(first["log"][0].startswith("T1 [Inventario]"))
+            self.assertTrue(first["log"][1].startswith("T2 [Pagos]"))
+            self.assertTrue(first["log"][2].startswith("T3 [Facturación]"))
 
             status, retry, _ = self._request(
                 "POST",
@@ -544,6 +623,75 @@ class TestAutenticacionSegura(unittest.TestCase):
                     ("SUP-001",),
                 ).fetchone()[0]
             self.assertEqual(stock_final, stock_inicial - 2)
+
+    def test_api_ordenes_expone_c1_y_restringe_falla_simulada_a_admin(self):
+        with tempfile.TemporaryDirectory() as test_dir:
+            self._start_test_server(os.path.join(test_dir, "saga_console.db"))
+            status, _, headers = self._request(
+                "POST",
+                "/api/login",
+                {
+                    "email": "demo@lacolmena.co",
+                    "password": "LocalAdminPass2026!",
+                },
+            )
+            self.assertEqual(status, 200)
+            admin_cookie = headers["Set-Cookie"].split(";", 1)[0]
+            body = {
+                "direccion": "Punto de venta",
+                "items": [{"codigo": "SUP-001", "cantidad": 2}],
+                "simular_falla_pago": True,
+            }
+
+            status, result, _ = self._request(
+                "POST",
+                "/api/ordenes",
+                body,
+                cookie=admin_cookie,
+                headers={"Idempotency-Key": "SAGA-C1-ADMIN-001"},
+            )
+            self.assertEqual(status, 409)
+            self.assertEqual(result["pedido"]["saga_status"], "COMPENSATED")
+            self.assertTrue(result["log"][0].startswith("T1 [Inventario]"))
+            self.assertTrue(
+                any(
+                    line.startswith("C1 [Compensación de inventario]")
+                    for line in result["log"]
+                )
+            )
+            self.assertFalse(
+                any(line.startswith("T3 [Facturación]") for line in result["log"])
+            )
+
+            status, _, _ = self._request(
+                "POST",
+                "/api/usuarios",
+                {
+                    "nombre": "Vendedora",
+                    "email": "saga-vendor@example.com",
+                    "password": "VendorStrongPass2026!",
+                },
+                cookie=admin_cookie,
+            )
+            self.assertEqual(status, 200)
+            status, _, vendor_headers = self._request(
+                "POST",
+                "/api/login",
+                {
+                    "email": "saga-vendor@example.com",
+                    "password": "VendorStrongPass2026!",
+                },
+            )
+            self.assertEqual(status, 200)
+            vendor_cookie = vendor_headers["Set-Cookie"].split(";", 1)[0]
+            status, _, _ = self._request(
+                "POST",
+                "/api/ordenes",
+                body,
+                cookie=vendor_cookie,
+                headers={"Idempotency-Key": "SAGA-C1-VENDOR-001"},
+            )
+            self.assertEqual(status, 403)
 
     def _start_test_server(self, db_path):
         self.db_path = db_path
@@ -852,6 +1000,37 @@ class TestOutboxWorker(unittest.TestCase):
         self.assertEqual(pending[0]["attempts"], 1)
         self.assertEqual(pending[0]["last_error"], "OSError('broker no disponible')")
 
+    def test_worker_aumenta_la_espera_entre_reintentos_hasta_un_limite(self):
+        event = crear_cloudevent(
+            "bina.la_colmena.venta.registrada",
+            {"sale_id": 26},
+        )
+        self.outbox_repo.registrar_evento("26", event.to_dict())
+
+        class FailingPublisher:
+            def publish(self, _):
+                raise OSError("broker no disponible")
+
+        worker = OutboxWorker(
+            self.outbox_repo,
+            FailingPublisher(),
+            poll_interval=1.0,
+        )
+
+        for expected_delay in (2.0, 4.0, 8.0, 16.0, 32.0, 60.0, 60.0):
+            self.assertEqual(worker.process_pending(), 0)
+            self.assertEqual(worker._retry_delay, expected_delay)
+            self.assertTrue(worker._last_attempt_failed)
+
+        class AvailablePublisher:
+            def publish(self, _):
+                return None
+
+        worker.publisher = AvailablePublisher()
+        self.assertEqual(worker.process_pending(), 1)
+        self.assertEqual(worker._retry_delay, 1.0)
+        self.assertEqual(self.outbox_repo.obtener_pendientes(), [])
+
     def test_kafka_publica_json_cloud_event_y_espera_confirmacion(self):
         event = crear_cloudevent(
             "bina.la_colmena.venta.registrada",
@@ -867,12 +1046,12 @@ class TestOutboxWorker(unittest.TestCase):
                 return 0
 
             producer.flush.side_effect = confirm_delivery
-            publisher = KafkaPublisher("localhost:9092")
+            publisher = KafkaPublisher("127.0.0.1:9092")
 
             publisher.publish(event)
 
         config = producer_factory.call_args.args[0]
-        self.assertEqual(config["bootstrap.servers"], "localhost:9092")
+        self.assertEqual(config["bootstrap.servers"], "127.0.0.1:9092")
         self.assertEqual(config["acks"], "all")
         self.assertTrue(config["enable.idempotence"])
         publish_args = producer.produce.call_args
@@ -901,7 +1080,7 @@ class TestOutboxWorker(unittest.TestCase):
                 return 0
 
             producer.flush.side_effect = reject_delivery
-            publisher = KafkaPublisher("localhost:9092")
+            publisher = KafkaPublisher("127.0.0.1:9092")
 
             with self.assertRaises(KafkaException):
                 publisher.publish(event)

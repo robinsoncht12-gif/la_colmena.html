@@ -75,7 +75,7 @@ El servidor levantará en `http://localhost:8086` con:
 
 - Los eventos se guardan como JSON CloudEvents 1.0 con `specversion`, UUIDv4 `id`, `source` con prefijo `bina`, tipo en pasado, `datacontenttype` y `data`.
 - Las ventas, ajustes de inventario, cuentas y transiciones de pedido escriben su cambio de negocio y el evento `PENDING` en una única transacción SQLite.
-- El worker asíncrono publica CloudEvents JSON en el topic durable `bina.events` de Apache Kafka y solo marca `PROCESSED` tras la confirmación del broker (`acks=all`). Si Kafka no está disponible, el evento permanece pendiente en SQLite y se reintenta.
+- El worker asíncrono publica CloudEvents JSON en el topic durable `bina.events` de Apache Kafka y solo marca `PROCESSED` tras la confirmación del broker (`acks=all`). Si Kafka no está disponible, el evento permanece pendiente en SQLite y se reintenta con espera exponencial, hasta 60 segundos entre intentos.
 - La entrega es al menos una vez: un consumidor debe deduplicar usando el `id` CloudEvent.
 
 Para levantar Kafka localmente con Docker Compose, configura la dirección del broker en PowerShell:

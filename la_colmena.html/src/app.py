@@ -405,6 +405,23 @@ class H(BaseHTTPRequestHandler):
                             "ORDER BY id DESC LIMIT 20"
                         )
                     )
+            elif path == "/api/outbox":
+                if self._is_admin(user):
+                    events = query(
+                        """
+                        SELECT id, event_type, payload_json, timestamp,
+                               attempts, last_error
+                        FROM outbox_events
+                        WHERE status = 'PENDING' AND last_error IS NOT NULL
+                        ORDER BY id DESC
+                        LIMIT 10
+                        """
+                    )
+                    for event in events:
+                        event["event_id"] = json.loads(
+                            event.pop("payload_json")
+                        ).get("id")
+                    self.send_json({"events": events})
             elif path == "/api/resumen":
                 if not self._require_roles(user, (ADMIN_ROLE, VENDOR_ROLE)):
                     return
@@ -544,10 +561,20 @@ class H(BaseHTTPRequestHandler):
                         )
                     address = Validator.validar_no_vacio(address, "direccion")
                     items = Validator.validar_items_pedido(data.get("items"))
+                    simular_falla_pago = data.get(
+                        "simular_falla_pago", False
+                    )
+                    if not isinstance(simular_falla_pago, bool):
+                        raise ValidationError(
+                            "El campo 'simular_falla_pago' debe ser booleano.",
+                            campo="simular_falla_pago",
+                        )
                 except ValidationError as error:
                     self.send_json(
                         {"ok": False, "error": str(error)}, 400
                     )
+                    return
+                if simular_falla_pago and not self._is_admin(user):
                     return
 
                 result = _saga_orquestador().ejecutar_saga_pedido(
@@ -556,6 +583,7 @@ class H(BaseHTTPRequestHandler):
                     direccion=address,
                     items_req=items,
                     idempotency_key=idempotency_key,
+                    simular_falla_pago=simular_falla_pago,
                 )
                 pedido = result.get("pedido")
                 if pedido is None:
@@ -575,6 +603,7 @@ class H(BaseHTTPRequestHandler):
                             "error": result.get(
                                 "error", "No se pudo procesar la orden"
                             ),
+                            "log": result.get("log", []),
                         },
                         status,
                     )
@@ -593,6 +622,7 @@ class H(BaseHTTPRequestHandler):
                         "error_compensacion": result.get(
                             "error_compensacion"
                         ),
+                        "log": result.get("log", []),
                     },
                     200 if result["exito"] else 409,
                 )
@@ -666,7 +696,13 @@ class H(BaseHTTPRequestHandler):
                     insertar_evento_outbox(
                         connection, str(sale_cursor.lastrowid), event.to_dict()
                     )
-                self.send_json({"ok": True, "total": total})
+                self.send_json(
+                    {
+                        "ok": True,
+                        "total": total,
+                        "evento": event.to_dict(),
+                    }
+                )
             elif path == "/api/productos/ajustar":
                 if not self._is_admin(user):
                     return

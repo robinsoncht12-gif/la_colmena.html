@@ -25,7 +25,7 @@ class KafkaPublisher:
     ):
         self.bootstrap_servers = bootstrap_servers or os.environ.get(
             "LACOLMENA_KAFKA_BOOTSTRAP_SERVERS",
-            "localhost:9092",
+            "127.0.0.1:9092",
         )
         self.topic = topic
         self._producer = Producer(
@@ -88,18 +88,27 @@ class OutboxWorker:
         self.poll_interval = poll_interval
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
+        self._retry_delay = poll_interval
+        self._last_attempt_failed = False
 
     def process_pending(self) -> int:
         processed = 0
+        self._last_attempt_failed = False
         for record in self.repository.obtener_pendientes():
             try:
                 self.publisher.publish(record["payload"])
             except (
                 KafkaException,
                 OSError,
+                TimeoutError,
                 ValueError,
                 BufferError,
             ) as error:
+                self._last_attempt_failed = True
+                self._retry_delay = min(
+                    self._retry_delay * 2,
+                    max(60.0, self.poll_interval),
+                )
                 error_detail = repr(error)
                 self.repository.registrar_error(record["id"], error_detail)
                 logger.error(
@@ -109,6 +118,7 @@ class OutboxWorker:
                 )
                 break
 
+            self._retry_delay = self.poll_interval
             if not self.repository.marcar_publicado(record["id"]):
                 raise RuntimeError(
                     f"No se pudo marcar PROCESSED el evento de outbox {record['id']}."
@@ -139,5 +149,10 @@ class OutboxWorker:
             except sqlite3.Error:
                 logger.exception("Error de base de datos en el worker de outbox")
                 processed = 0
-            if processed == 0:
-                self._stop_event.wait(self.poll_interval)
+            if processed == 0 or self._last_attempt_failed:
+                delay = (
+                    self._retry_delay
+                    if self._last_attempt_failed
+                    else self.poll_interval
+                )
+                self._stop_event.wait(delay)

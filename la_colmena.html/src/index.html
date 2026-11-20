@@ -182,6 +182,81 @@
             font-size: 13px
         }
 
+        .integration-alert {
+            border-left: 4px solid #b45309
+        }
+
+        #outboxEvents {
+            margin: 10px 0 0;
+            padding-left: 20px
+        }
+
+        #outboxEvents li {
+            margin-top: 8px;
+            overflow-wrap: anywhere
+        }
+
+        #outboxEvents p {
+            margin-top: 4px;
+            overflow-wrap: anywhere
+        }
+
+        .sale-console-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px
+        }
+
+        .sale-event-console {
+            min-height: 180px;
+            max-height: 420px;
+            overflow: auto;
+            margin-top: 12px;
+            padding: 14px;
+            border: 1px solid #263548;
+            border-radius: 9px;
+            background: #101820;
+            color: #d3f7df;
+            font: 12px/1.6 Consolas, "Courier New", monospace;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere
+        }
+
+        .saga-runner {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid #eee
+        }
+
+        .saga-runner summary {
+            cursor: pointer;
+            font-weight: 700
+        }
+
+        .saga-runner-fields {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 8px 14px;
+            margin: 10px 0
+        }
+
+        .saga-runner-fields label {
+            display: block;
+            font-size: 13px
+        }
+
+        .saga-simulate-failure {
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .saga-simulate-failure input {
+            width: auto;
+            margin: 0
+        }
+
         .hidden {
             display: none
         }
@@ -1298,6 +1373,14 @@
             color: var(--dashboard-danger-text)
         }
 
+        #dashboard .integration-alert {
+            border-left-color: var(--dashboard-danger-text)
+        }
+
+        #dashboard #outboxEvents {
+            color: var(--dashboard-danger-text)
+        }
+
         #dashboard button.btn2 {
             border-color: var(--dashboard-border);
             background: var(--dashboard-info-bg);
@@ -1468,6 +1551,11 @@
 
     <main class="main">
         <div class="top"><div><h1 id="titulo">Resumen</h1><p id="subtitulo">Así se mueve tu operación hoy.</p></div><div class="top-actions"><button id="themeToggle" class="theme-toggle" type="button" aria-label="Cambiar al tema oscuro" aria-pressed="false"><span id="themeIcon" aria-hidden="true">🌙</span><span id="themeLabel">Tema oscuro</span></button><span class="connection-status">● Conectado a DB real</span></div></div>
+        <section id="outboxStatus" class="box integration-alert hidden" role="alert" aria-live="polite">
+            <h3>⚠️ Eventos pendientes de Kafka</h3>
+            <p id="outboxStatusMessage">Algunos eventos siguen pendientes de publicación.</p>
+            <ul id="outboxEvents"></ul>
+        </section>
 
         <!-- RESUMEN -->
         <div id="sec-resumen">
@@ -1492,6 +1580,25 @@
             <div class="grid2">
                 <div class="box"><h3 id="ventaTitulo">Registrar venta</h3><label id="clienteLabel" for="vCliente">Cliente</label><input id="vCliente" value="Cliente Mostrador"><label for="vProducto">Producto</label><select id="vProducto"></select><label for="vCant">Cantidad</label><input id="vCant" type="number" value="1" min="1"><button id="ventaSubmit" class="btn" style="width:100%;margin-top:10px" onclick="registrarVenta()">Confirmar venta ✅</button><p id="ventaMsg" role="status"></p></div>
                 <div id="historialVentasBox" class="box"><h3>Historial de ventas</h3><div id="listaVentas"></div></div>
+            </div>
+            <div class="box">
+                <div class="sale-console-heading">
+                    <div><h3>Consola de venta y Saga</h3><p class="summary-note">La venta muestra su CloudEvent; el flujo Saga muestra T1–T3 y C1 si ocurre compensación.</p></div>
+                    <button class="btn2" type="button" onclick="limpiarConsolaVenta()">Limpiar</button>
+                </div>
+                <pre id="saleEventConsole" class="sale-event-console" role="log" aria-live="polite">Consola lista. Registra una venta o ejecuta un pedido Saga.</pre>
+                <details class="saga-runner">
+                    <summary>Procesar un pedido separado con Saga (T1 → T3)</summary>
+                    <p class="summary-note">Este flujo crea un pedido del catálogo Saga; es independiente del historial de ventas tradicional.</p>
+                    <div class="saga-runner-fields">
+                        <div><label for="sagaProducto">Producto del catálogo Saga</label><select id="sagaProducto"></select></div>
+                        <div><label for="sagaCantidad">Cantidad</label><input id="sagaCantidad" type="number" value="1" min="1"></div>
+                        <div><label for="sagaDireccion">Dirección del pedido</label><input id="sagaDireccion" value="Punto de venta" maxlength="160"></div>
+                        <label id="sagaSimulateFailureControl" class="saga-simulate-failure hidden"><input id="sagaSimulateFailure" type="checkbox"> Simular rechazo de pago para ver C1 (prueba)</label>
+                    </div>
+                    <button id="sagaSubmit" class="btn" type="button" onclick="procesarPedidoSaga()" disabled>Procesar pedido Saga</button>
+                    <p id="sagaMessage" role="status"></p>
+                </details>
             </div>
         </div>
 
@@ -1521,7 +1628,9 @@
     </div>
     <script>
 let productos=[];
+    let sagaProductos=[];
 let usuarioActual=null;
+let outboxRefreshTimer=null;
 const dashboard=document.getElementById('dashboard');
 const themeToggle=document.getElementById('themeToggle');
 const themeIcon=document.getElementById('themeIcon');
@@ -1598,6 +1707,12 @@ function configurarInterfazRol(usuario){
   });
   const esAdministrador=usuario.rol==='Administradora';
   const esCliente=usuario.rol==='Cliente';
+  document.getElementById('outboxStatus').classList.toggle('hidden',!esAdministrador);
+  document.getElementById('sagaSimulateFailureControl').classList.toggle('hidden',!esAdministrador);
+  if(outboxRefreshTimer)clearInterval(outboxRefreshTimer);
+  outboxRefreshTimer=esAdministrador
+    ?setInterval(cargarEstadoOutbox,5000)
+    :null;
   document.getElementById('quickInventoryBtn').classList.toggle('hidden',!esAdministrador);
   document.getElementById('ventaTitulo').innerText=esCliente?'Comprar productos':'Registrar venta';
   document.getElementById('ventaSubmit').innerText=esCliente?'Realizar compra':'Confirmar venta ✅';
@@ -1635,7 +1750,7 @@ async function cerrarSesion(){
     alert('No fue posible cerrar la sesión. Inténtalo de nuevo.');
   }
 }
-async function apiJson(url,options){
+async function apiJson(url,options,acceptedStatuses=[]){
   const response=await fetch(url,options);
   const data=await response.json();
   if(response.status===401){
@@ -1643,7 +1758,8 @@ async function apiJson(url,options){
     document.getElementById('loginError').innerText='Tu sesión expiró. Inicia sesión nuevamente.';
     throw new Error('Sesión expirada');
   }
-  if(!response.ok||data.ok===false)throw new Error(data.error||'No fue posible completar la solicitud.');
+  const accepted=acceptedStatuses.includes(response.status);
+  if((!response.ok||data.ok===false)&&!accepted)throw new Error(data.error||'No fue posible completar la solicitud.');
   return data;
 }
 function show(id,btn){
@@ -1660,6 +1776,7 @@ function show(id,btn){
 async function cargarTodo(){
   if(usuarioActual&&usuarioActual.rol==='Cliente'){
     await cargarCatalogoCliente();
+    await cargarCatalogoSaga();
     return;
   }
   let res=await apiJson('/api/resumen');
@@ -1679,6 +1796,7 @@ async function cargarTodo(){
     document.getElementById('listaInventario').innerText='Solo el administrador puede actualizar el stock.';
   }
   document.getElementById('vProducto').innerHTML=productos.map(p=>`<option value="${p.id}">${p.nombre} — $${p.precio} (stock ${p.stock})</option>`).join('');
+  await cargarCatalogoSaga();
 
   let ventas=await apiJson('/api/ventas');
   let htmlVentas=ventas.map(v=>`<tr><td><b>#V-${v.id}</b></td><td>${v.cliente}</td><td><span class="badge ${v.estado=='Pagada'?'ok':'warn'}">${v.estado}</span></td><td style="text-align:right"><b>$${v.total.toLocaleString()}</b></td></tr>`).join('');
@@ -1694,6 +1812,67 @@ async function cargarTodo(){
   document.getElementById('repTabla').innerHTML=productos.map(p=>`<tr><td>${p.nombre}</td><td>$${p.precio.toLocaleString()}</td><td>${p.stock}</td><td>$${(p.precio*p.stock).toLocaleString()}</td></tr>`).join('');
   document.getElementById('repTotal').innerText='Valor total del inventario: $'+totalInv.toLocaleString('es-CO');
   document.getElementById('repTexto').innerText=`Tienes ${productos.length} productos y ${res.stock} unidades en total.`;
+  if(usuarioActual.rol==='Administradora')await cargarEstadoOutbox();
+}
+async function cargarEstadoOutbox(){
+  const status=document.getElementById('outboxStatus');
+  const message=document.getElementById('outboxStatusMessage');
+  const list=document.getElementById('outboxEvents');
+  try{
+    const data=await apiJson('/api/outbox');
+    list.replaceChildren();
+    if(data.events.length===0){
+      status.classList.add('hidden');
+      return;
+    }
+    message.textContent='Los siguientes eventos no se pudieron publicar y permanecen PENDING:';
+    data.events.forEach(event=>{
+      const item=document.createElement('li');
+      const heading=document.createElement('strong');
+      heading.textContent=`${event.event_type} · ${event.event_id||'#'+event.id}`;
+      const detail=document.createElement('p');
+      detail.textContent=`Intentos: ${event.attempts} · ${event.last_error}`;
+      item.append(heading,detail);
+      list.appendChild(item);
+    });
+    status.classList.remove('hidden');
+  }catch(error){
+    message.textContent='No fue posible consultar los eventos pendientes: '+error.message;
+    list.replaceChildren();
+    status.classList.remove('hidden');
+  }
+}
+async function cargarCatalogoSaga(){
+  const select=document.getElementById('sagaProducto');
+  const submit=document.getElementById('sagaSubmit');
+  const message=document.getElementById('sagaMessage');
+  try{
+    sagaProductos=await apiJson('/api/catalogo-saga');
+    select.replaceChildren();
+    sagaProductos.forEach(product=>{
+      const option=document.createElement('option');
+      option.value=product.codigo;
+      option.textContent=`${product.nombre} · ${product.codigo} — $${product.precio.toLocaleString('es-CO')}`;
+      select.appendChild(option);
+    });
+    if(sagaProductos.length===0){
+      const option=document.createElement('option');
+      option.textContent='No hay productos disponibles';
+      option.disabled=true;
+      select.appendChild(option);
+    }
+    submit.disabled=sagaProductos.length===0;
+    message.textContent='';
+  }catch(error){
+    sagaProductos=[];
+    select.replaceChildren();
+    const option=document.createElement('option');
+    option.textContent='No se pudo cargar el catálogo Saga';
+    option.disabled=true;
+    select.appendChild(option);
+    submit.disabled=true;
+    message.textContent='No fue posible cargar el catálogo de pedidos Saga: '+error.message;
+  }
 }
 async function cargarCatalogoCliente(){
   productos=await apiJson('/api/productos');
@@ -1781,12 +1960,93 @@ async function ajustar(id){
   }catch(e){alert(e.message);}
 }
 async function registrarVenta(){
+  let d;
   try{
-    let d=await apiJson('/api/ventas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cliente:document.getElementById('vCliente').value,producto_id:parseInt(document.getElementById('vProducto').value),cantidad:parseInt(document.getElementById('vCant').value)})});
-    const esCliente=usuarioActual.rol==='Cliente';
-    document.getElementById('ventaMsg').innerText=(esCliente?'✅ Compra realizada por $':'✅ Venta registrada por $')+d.total.toLocaleString('es-CO')+(esCliente?'':' y descontada del inventario');
+    d=await apiJson('/api/ventas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cliente:document.getElementById('vCliente').value,producto_id:parseInt(document.getElementById('vProducto').value),cantidad:parseInt(document.getElementById('vCant').value)})});
+  }catch(error){
+    document.getElementById('ventaMsg').innerText='❌ '+error.message;
+    escribirConsolaVenta(`[ERROR DE VENTA]\n${error.message}`);
+    return;
+  }
+  const event=d.evento;
+  if(!event){
+    const message='La venta se registró, pero el servidor no devolvió su CloudEvent.';
+    document.getElementById('ventaMsg').innerText='⚠️ '+message;
+    escribirConsolaVenta(`[ERROR DE TRAZABILIDAD]\n${message}`);
+    return;
+  }
+  const esCliente=usuarioActual.rol==='Cliente';
+  document.getElementById('ventaMsg').innerText=(esCliente?'✅ Compra realizada por $':'✅ Venta registrada por $')+d.total.toLocaleString('es-CO')+(esCliente?'':' y descontada del inventario');
+  escribirConsolaVenta([
+    `[${new Date().toLocaleTimeString('es-CO')}] Venta ${event.data.sale_id} registrada`,
+    `CloudEvent: ${event.type}`,
+    `ID: ${event.id}`,
+    JSON.stringify(event,null,2)
+  ].join('\n'));
+  try{
     await cargarTodo();
-  }catch(e){document.getElementById('ventaMsg').innerText='❌ '+e.message;}
+  }catch(error){
+    document.getElementById('ventaMsg').innerText+=' · No se pudo actualizar la vista: '+error.message;
+  }
+}
+function escribirConsolaVenta(content){
+  const consoleOutput=document.getElementById('saleEventConsole');
+  consoleOutput.textContent=content;
+  consoleOutput.scrollTop=consoleOutput.scrollHeight;
+}
+function limpiarConsolaVenta(){
+  escribirConsolaVenta('Consola limpia. Registra una venta o ejecuta un pedido Saga.');
+}
+async function procesarPedidoSaga(){
+  const product=sagaProductos.find(item=>item.codigo===document.getElementById('sagaProducto').value);
+  const quantity=Number(document.getElementById('sagaCantidad').value);
+  const address=document.getElementById('sagaDireccion').value.trim();
+  const message=document.getElementById('sagaMessage');
+  const submit=document.getElementById('sagaSubmit');
+  if(!product){
+    message.textContent='Selecciona un producto del catálogo Saga.';
+    return;
+  }
+  if(!Number.isInteger(quantity)||quantity<1){
+    message.textContent='La cantidad debe ser un entero mayor que cero.';
+    return;
+  }
+  if(!address){
+    message.textContent='La dirección del pedido es obligatoria.';
+    return;
+  }
+  const payload={
+    direccion:address,
+    items:[{codigo:product.codigo,cantidad:quantity}],
+    simular_falla_pago:document.getElementById('sagaSimulateFailure').checked
+  };
+  submit.disabled=true;
+  message.textContent='Ejecutando T1, T2 y T3…';
+  try{
+    const result=await apiJson('/api/ordenes',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Idempotency-Key':`UI-${crypto.randomUUID()}`
+      },
+      body:JSON.stringify(payload)
+    },[409]);
+    const lines=[
+      `[${new Date().toLocaleTimeString('es-CO')}] Traza Saga ${result.pedido?.id||''}`,
+      ...(Array.isArray(result.log)?result.log:[]),
+      result.pedido?`[ESTADO] Pedido ${result.pedido.id} · ${result.pedido.estado} · Saga ${result.pedido.saga_status}`:'',
+      result.error_compensacion?`[ERROR C2/C1] ${result.error_compensacion}`:''
+    ].filter(Boolean);
+    escribirConsolaVenta(lines.join('\n'));
+    message.textContent=result.ok
+      ?`Saga completada para el pedido ${result.pedido.id}.`
+      :`Saga finalizada con compensación o error para ${result.pedido?.id||'el pedido'}; revisa la consola.`;
+  }catch(error){
+    message.textContent='No fue posible procesar el pedido Saga: '+error.message;
+    escribirConsolaVenta(`[ERROR DE SAGA]\n${error.message}`);
+  }finally{
+    submit.disabled=sagaProductos.length===0;
+  }
 }
     </script>
 </body>
