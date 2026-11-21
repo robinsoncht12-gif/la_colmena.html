@@ -9,13 +9,13 @@ Dependencias: NINGUNA (Python Standard Library `time`, `json`)
 """
 import time
 import copy
-import threading
 from src.models import Pedido, ItemPedido, EstadoPedido, EstadoSaga
 from src.interfaces import IProductoRepository, IPedidoRepository, IOutboxRepository, IPasarelaPagos
 from src.validators import Validator, ValidationError
 from src.logger import get_logger
 from src.events import crear_cloudevent
 from src.database import DB_PATH, database_connection
+from src.circuit_breaker import CircuitBreaker, CircuitOpenError
 
 logger = get_logger("Services")
 
@@ -270,79 +270,6 @@ class ColmenaService:
                 actor=actor,
             )
         return pedido_compensado
-
-
-class CircuitOpenError(RuntimeError):
-    """Raised when the payment circuit is open or its probe is in progress."""
-
-
-class CircuitBreaker:
-    CLOSED = "CLOSED"
-    OPEN = "OPEN"
-    HALF_OPEN = "HALF-OPEN"
-
-    def __init__(self, failure_threshold=3, recovery_seconds=10):
-        self.failure_threshold = failure_threshold
-        self.recovery_seconds = recovery_seconds
-        self.state = self.CLOSED
-        self.consecutive_failures = 0
-        self.opened_at = None
-        self._probe_in_flight = False
-        self._lock = threading.Lock()
-
-    def acquire(self):
-        with self._lock:
-            if self.state == self.OPEN:
-                if time.monotonic() - self.opened_at < self.recovery_seconds:
-                    logger.warning("[CircuitBreaker] Cobro rechazado localmente; circuito OPEN.")
-                    raise CircuitOpenError("Circuito de pagos abierto; reintente tras el periodo de recuperación.")
-                self.state = self.HALF_OPEN
-            if self.state == self.HALF_OPEN:
-                if self._probe_in_flight:
-                    logger.warning("[CircuitBreaker] Cobro rechazado localmente; prueba HALF-OPEN en curso.")
-                    raise CircuitOpenError("Circuito de pagos HALF-OPEN; ya hay una prueba en curso.")
-                self._probe_in_flight = True
-
-    def record_success(self):
-        with self._lock:
-            recovered = self.state != self.CLOSED
-            self.state = self.CLOSED
-            self.consecutive_failures = 0
-            self.opened_at = None
-            self._probe_in_flight = False
-        if recovered:
-            logger.info("[CircuitBreaker] Prueba de pago exitosa; circuito CLOSED.")
-
-    def record_failure(self):
-        with self._lock:
-            self.consecutive_failures += 1
-            self._probe_in_flight = False
-            if self.state == self.HALF_OPEN or self.consecutive_failures >= self.failure_threshold:
-                self.state = self.OPEN
-                self.opened_at = time.monotonic()
-            state = self.state
-            failures = self.consecutive_failures
-        logger.warning(
-            "[CircuitBreaker] Fallo de pago %s/%s; estado=%s.",
-            failures, self.failure_threshold, state,
-        )
-
-    def snapshot(self):
-        with self._lock:
-            if self.state == self.OPEN and time.monotonic() - self.opened_at >= self.recovery_seconds:
-                self.state = self.HALF_OPEN
-            remaining = (
-                max(0.0, self.recovery_seconds - (time.monotonic() - self.opened_at))
-                if self.state == self.OPEN and self.opened_at is not None else 0.0
-            )
-            return {
-                "state": self.state,
-                "consecutive_failures": self.consecutive_failures,
-                "failure_threshold": self.failure_threshold,
-                "recovery_seconds": self.recovery_seconds,
-                "remaining_seconds": round(remaining, 1),
-                "probe_in_flight": self._probe_in_flight,
-            }
 
 
 class PasarelaPagosMock(IPasarelaPagos):
